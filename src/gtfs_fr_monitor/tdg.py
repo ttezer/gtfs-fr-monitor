@@ -17,6 +17,8 @@ from gtfs_jp_monitor.gtfsdatajp import GtfsDataJpClient, Transport
 from gtfs_jp_monitor.ids import is_path_id
 from gtfs_jp_monitor.source import ApiError, FeedRecord, Rejected
 
+from .regions import dataset_region
+
 BASE_URL = "https://transport.data.gouv.fr"
 HISTORY_HOST = "transport-data-gouv-fr-resource-history-prod.cellar-c2.services.clever-cloud.com"
 USER_AGENT = "gtfs-fr-monitor (+https://github.com/ttezer/gtfs-fr-monitor)"
@@ -67,14 +69,8 @@ def _is_gtfs(resource: dict) -> bool:
 
 
 def _region(dataset: dict) -> int | None:
-    """INSEE region code when the dataset is described by one region; finer areas are not mapped yet."""
-    areas = [a for a in dataset.get("covered_area") or [] if isinstance(a, dict)]
-    regions = {a.get("insee") for a in areas if a.get("type") == "region"}
-    if len(regions) == 1 and len(areas) == 1:
-        code = regions.pop()
-        if isinstance(code, str) and code.isdigit():
-            return int(code)
-    return None
+    """INSEE region code when every covered area lies in one region (regions.py)."""
+    return dataset_region(dataset.get("covered_area") or [])
 
 
 class TdgClient:

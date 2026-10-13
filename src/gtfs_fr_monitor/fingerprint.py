@@ -51,14 +51,13 @@ def _seconds(value: str) -> int | None:
 
 
 def _validity_end(zf: zipfile.ZipFile) -> date | None:
-    """feed_info's end date, else the last date the calendar files mention."""
-    for row in _rows(zf, "feed_info.txt"):
-        end = _yyyymmdd(row.get("feed_end_date", ""))
-        if end:
-            return end
-        break
+    """The later of feed_info's end date and the last date the calendar files mention: a
+    feed_info left from an earlier year must not hide the trips."""
     ends = [_yyyymmdd(r.get("end_date", "")) for r in _rows(zf, "calendar.txt")]
     ends += [_yyyymmdd(r.get("date", "")) for r in _rows(zf, "calendar_dates.txt") if r.get("exception_type") == "1"]
+    for row in _rows(zf, "feed_info.txt"):
+        ends.append(_yyyymmdd(row.get("feed_end_date", "")))
+        break
     ends = [e for e in ends if e]
     return max(ends) if ends else None
 
@@ -148,6 +147,11 @@ def fingerprint(zip_path: Path, after: date, max_days: int = 120) -> dict[str, s
                               if d in by_date else "")
         d += timedelta(days=1)
     return out
+
+
+def validity_end(zip_path: Path) -> date | None:
+    with zipfile.ZipFile(zip_path) as zf:
+        return _validity_end(zf)
 
 
 def differs(older: dict[str, str], newer: dict[str, str], after: date, skip_ahead: int = 7, skip_edge: int = 1) -> bool | None:

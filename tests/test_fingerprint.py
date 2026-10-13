@@ -75,6 +75,10 @@ class FingerprintTest(unittest.TestCase):
         base = fingerprint(write(self.dir / "b2.zip", feed_end="20261130"), TODAY)
         self.assertTrue(differs(base, cut, TODAY))
 
+    def test_stale_feed_info_end(self):
+        stale = self.fp("stale.zip", feed_end="20231231")
+        self.assertEqual(max(stale), "2026-11-30")  # the calendar runs on
+
     def test_frequencies(self):
         a = self.fp("fa.zip", freq="T1,06:00:00,09:00:00,600\n")
         b = self.fp("fb.zip", freq="T1,06:00:00,09:00:00,900\n")

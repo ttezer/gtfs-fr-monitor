@@ -17,7 +17,7 @@ from gtfs_jp_monitor.download import DownloadError, download_zip, urllib_opener
 from gtfs_jp_monitor.ids import is_path_id
 from gtfs_jp_monitor.source import ApiError, FeedGenerations, GenerationRecord, Rejected
 
-from .fingerprint import FingerprintError, fingerprint
+from .fingerprint import FingerprintError, fingerprint, validity_end
 from .history import Candidate, from_csv, from_dataset, numeric_dataset_id
 from .selection import SelectionConfig, backfill, check
 from .state import load_state, save_state
@@ -64,10 +64,11 @@ class FrSource:
         except DownloadError as err:
             raise ApiError(f"download failed: {err.code}") from None
 
-    def _fingerprint(self, c: Candidate, day: date) -> dict[str, str]:
+    def _fingerprint(self, c: Candidate, day: date) -> tuple[dict[str, str], str | None]:
         path = self._fetch(c.url, "candidate.zip", self.settings.max_zip_bytes, is_history_url)
         try:
-            return fingerprint(path, day, self.settings.fingerprint_days)
+            end = validity_end(path)
+            return fingerprint(path, day, self.settings.fingerprint_days), end.isoformat() if end else None
         except (FingerprintError, OSError, ValueError) as err:
             raise ApiError(f"fingerprint of {c.uid} failed: {type(err).__name__}") from None
         finally:

@@ -102,6 +102,8 @@ class FrSourceTest(unittest.TestCase):
         first, second = gens.generations
         self.assertTrue(15 <= int(second.uid[:8], 16) < 22)  # within one 7-day step of the change
         self.assertEqual((second.rid, second.gtfs_url.startswith(HOST)), (None, True))
+        n = int(second.uid[:8], 16)
+        self.assertEqual(second.to_date, (START + timedelta(days=n + 40)).isoformat())  # calendar end in the ZIP
         self.assertTrue(second.published_at.endswith("+02:00"))
         self.assertEqual(src.changed_states, [f"{ORG}/{FEED}"])
         self.assertFalse(any((self.settings.work_dir).iterdir()))  # downloads removed

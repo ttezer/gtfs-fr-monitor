@@ -35,7 +35,7 @@ class Recorder:
 
     def __call__(self, c, day):
         self.calls.append(c.uid)
-        return self.plan[c.uid](day)
+        return self.plan[c.uid](day), None
 
 
 class CheckTest(unittest.TestCase):
@@ -92,6 +92,17 @@ class CheckTest(unittest.TestCase):
         versions, last = check([], None, a, rec, CFG)
         versions, last = check(versions, last, b, rec, CFG)
         self.assertEqual([v.uid for v in versions], [uid(1), uid(2)])
+
+    def test_expired_file_is_no_version(self):
+        stale, live = cand(1, START), cand(2, START + timedelta(days=1))
+        later = cand(3, START + timedelta(days=2))
+        rec = Recorder({stale.uid: lambda day: {}, live.uid: timetable("A"), later.uid: lambda day: {}})
+        versions, last = check([], None, stale, rec, CFG)
+        self.assertEqual((versions, last.candidate.uid), ([], uid(1)))  # a reference, so the history is not filled again
+        versions, last = check(versions, last, live, rec, CFG)
+        self.assertEqual([v.uid for v in versions], [uid(2)])
+        versions, last = check(versions, last, later, rec, CFG)  # expires again: kept as it was
+        self.assertEqual(([v.uid for v in versions], last.candidate.uid), ([uid(2)], uid(2)))
 
     def test_older_or_same_file_is_ignored(self):
         a, b = cand(2, START + timedelta(days=1)), cand(1, START)

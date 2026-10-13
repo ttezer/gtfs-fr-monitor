@@ -20,7 +20,8 @@ from typing import Callable
 from .fingerprint import differs
 from .history import Candidate, needs_fingerprint
 
-Fingerprinter = Callable[[Candidate, date], dict[str, str]]
+# (fingerprint, validity end as ISO date or None) of a file, from the given day on
+Fingerprinter = Callable[[Candidate, date], tuple[dict[str, str], str | None]]
 
 
 @dataclass(frozen=True)
@@ -54,8 +55,8 @@ def publication_day(c: Candidate) -> date:
     return datetime.fromisoformat(c.published_at).date()
 
 
-def _version(c: Candidate, fp: dict[str, str]) -> Version:
-    return Version(c.uid, c.published_at, c.url, publication_day(c).isoformat(), max(fp) if fp else c.end_date)
+def _version(c: Candidate, end: str | None) -> Version:
+    return Version(c.uid, c.published_at, c.url, publication_day(c).isoformat(), end or c.end_date)
 
 
 def check(versions: list[Version], last: Checked | None, c: Candidate, fingerprint_of: Fingerprinter,
@@ -66,10 +67,12 @@ def check(versions: list[Version], last: Checked | None, c: Candidate, fingerpri
     if last is not None and not needs_fingerprint(last.candidate, c):
         return versions, last  # same trips
     day = publication_day(c)
-    fp = fingerprint_of(c, day)
+    fp, end = fingerprint_of(c, day)
+    if not fp:  # nothing runs from this day on: an expired file is no timetable
+        return versions, (last if last is not None else Checked(c, fp))
     changed = True if last is None else differs(last.fingerprint, fp, day, cfg.skip_ahead, cfg.skip_edge)
     if changed is not False:  # True, or None: a successive timetable
-        return versions + [_version(c, fp)], Checked(c, fp)
+        return versions + [_version(c, end)], Checked(c, fp)
     ahead = sum(1 for d in last.fingerprint if d >= day.isoformat())
     return versions, (Checked(c, fp) if ahead * 2 <= len(last.fingerprint) else last)
 

@@ -83,7 +83,14 @@ uyarı yok; ikinci çalışma 7 s, 1 indirme, hiçbir dosya yazılmadı. STAR ve
   557 feed'in 539'unda bölge). JP verisiyle FR profili tarayıcıda denendi: Fransızca arayüz ve rapor, eksik metin yok.
 - 3e açık konuları (4. adımda gerçek FR verisiyle): geçmiş tablosundaki JP'ye özgü sütunlar (API konumu `rid`,
   JP dosyaları, not), `signature.py`'deki Japonya sınır kutusu (`coordWarn`), doğrulayıcı seçimi (`notice`, `gtfsjp` sekmesi).
-- 4. `gtfs-fr-data` düzeni ve workflow.
+- 4. (YAPILDI, yayın bekliyor) Workflow ve aşamalar. Analiz: GTFS Analyzer, JP ile aynı sabit sürüm (v0.15.0),
+  `auto` profili (GTFS-JP kuralları yalnız JP sinyali olan feed'de çalışır), `--lang fr` kural başlıkları.
+  FR: `__main__.py` (sync-catalog, analyze, semantic-reports, site-profile), `analyzer.lock.json`,
+  `.github/workflows/gtfs-fr-monitor.yml` (JP checkout `jp/` sabit commit). JP 37fc73a (durak alanları,
+  kural başlığı dilleri), 34926c5 (geçmiş sütunları gizleme). Yerelde uçtan uca: 4 feed, 8 analiz, 7 rapor,
+  FR/EN/TR Atom, sayfa Fransızca ve eksiksiz.
+  Yayın için: JP ve FR push; gtfs-fr-data'da ilk commit; `DATA_REPO_TOKEN` secret'ı; Pages kaynağı "GitHub Actions";
+  ilk koşular elle (indirme bütçesi ile geçmiş doldurma birkaç koşuya yayılır).
 
 ## Ön koşul
 

@@ -26,34 +26,51 @@ Geriye dönük 4 sürüm için yeterli.
 - Hariç: son sürümünde `stop_times.txt` ≥ 100 MB (2026-10-13: IDFM, Naolib, TCL, TBM, Aix-Marseille ×2, Fil Bleu, TAO).
   Sitede "şimdilik izlenmiyor" olarak gösterilir.
 
-## Anlamlı sürüm
+## Anlamlı sürüm (uygulandı: fingerprint.py, history.py, selection.py, state.py, frsource.py)
 
-1. Aday: geçmişteki her GTFS kaydı. `zip_metadata` sha256 kümesi bir öncekiyle aynıysa aday değil.
-2. Ön süzgeç (indirmesiz): yalnız `calendar_dates`/`feed_info`/`attributions`/`translations`
-   değiştiyse ve yeni ZIP'in geçerlilik aralığı aynıysa aday değil.
-3. Parmak izi (indirme): yayın gününden sonraki ortak günlerde, gün × hat × yön × ilk durak
-   kalkış saatleri kümesinin sha256'sı. Önceki anlamlı sürümle aynıysa sürüm değil.
-4. Değiştiyse yeni anlamlı sürüm → katalogda yeni generation.
+1. Aday: geçmişteki her GTFS kaydı (`uuid`, kalıcı URL, `zip_metadata` dosya hash'leri).
+2. Ön süzgeç (indirmesiz): referansla aynı dosyalar ya da yalnız metadata dosyaları
+   (`feed_info`, `attributions`, `translations`, `object_codes_extension`) değiştiyse indirme yok.
+   `calendar_dates` süzülmez: bazı feed'ler onu günde birkaç kez yeniden üretir (Cavalaire: 946 kayıt,
+   95 farklı içerik, ardışık kayıtlar hep farklı), ama gerçek değişiklik de onunla gelebilir.
+3. Parmak izi (indirme, akışlı): yayın gününden geçerlilik sonuna (en çok 120 gün) her gün için
+   hat × yön × ilk/son durak ve saat × durak sayısı × frekans listesinin hash'i; seferi olmayan gün "".
+   Geçerlilik sonu = `feed_info` ile takvimin büyüğü (eski kalmış `feed_info` seferleri gizlemesin).
+4. Karşılaştırma referansla yapılır: ortak günler, ilk 7 gün (kısa pencerede en çok yarısı) ve
+   pencerenin son günü hariç. İlk günler büyük ağların kısa vadeli düzeltmeleri (IDFM: 145 bin
+   seferde ~100), son gün çoğu zaman eksik.
+   - Fark var → yeni sürüm, dosya referans olur.
+   - Ortak gün yok → ardışık tarife → yeni sürüm.
+   - İleride hiç sefer yok (süresi geçmiş dosya) → sürüm değil, referans aynı kalır.
+   - Fark yok → referans, ileriye dönük günlerinin yarısı geçince yenilenir.
+5. Referansla karşılaştırma küçük değişikliklerin birikmesini de yakalar ve günlük feed'lerin durum
+   dosyasını çoğu gün değiştirmez (her gün yazılsa veri reposu yılda ~300 MB büyürdü).
 
-Durum (son incelenen aday, son anlamlı sürümün parmak izi) veri reposunda feed başına
-`catalog/fr-state/<org>/<feed>.json` dosyasında tutulur; tekrar indirme olmaz.
+Durum: feed başına `catalog/fr-state/<org>/<feed>.json` (sürümler, referans ve parmak izi); yalnız
+değişince yazılır.
 
-Başlangıç: geçmiş CSV'sinden geriye doğru en fazla 4 anlamlı sürüm. Günlük: `/api/datasets/{id}`
-geçmişindeki (son 25 kayıt) yeni adaylar.
+Başlangıç: geçmiş CSV'sinden geriye doğru örnekleme; adım = pencerenin ileri uzunluğunun yarısı
+(1–7 gün), en çok 30 indirme ve 180 gün; son 4 sürüm tutulur, en eskisinin başlangıcı bir adım
+kadar kayabilir. Günlük: veri setinin son 25 kaydından en yenisi referansla karşılaştırılır.
+Çalışma başına 300 indirme; yetmeyen feed `HISTORY_DEFERRED` notuyla sonraki çalışmaya kalır.
+`stop_times` ≥ 100 MB olan feed indirilmeden `FEED_TOO_LARGE` notu alır.
+
+Gerçek veriyle (2026-10-13; L'va, Jybus, Cavalaire, Pays des Ecrins): ilk çalışma 57–78 s, 28–32 indirme,
+uyarı yok; ikinci çalışma 7 s, 1 indirme, hiçbir dosya yazılmadı. STAR ve IDFM ardışık çiftleri: fark yok.
 
 ## Ülke profili
 
 - Tatil tablosu: Fransa resmî tatilleri (Paskalya'ya bağlı günler hesaplanır), `gtfs-jp-semantic-holidays/1` şemasında.
 - Motor ayarı: JP varsayılanı + `matching.compare_from_publication: true`; Japonca ad ekleri FR'de etkisiz.
 - Lisans: `lov2` → `etalab-2.0`, `odc-odbl` → `ODbL-1.0`; `fr-lo`, `mobility-licence`, `notspecified` → `null` (uyarı).
-  JP şemasındaki lisans listesine bu iki kimliğin eklenmesi gerekir.
+  JP şemasına eklendi (aad9d26); `gtfs_url` deseni FR arşiv sunucusunu kabul ediyor (8f836ff).
 - Diller: TR, EN, FR (sayfa ve Atom).
 
 ## Alt adımlar
 
-- 3a. Repo iskeleti + transport.data.gouv.fr istemcisi (`list_feeds`, kapsam süzgeçleri), testler fixture ile.
-- 3b. JP'de lisans eşlemesi ve şema listesi.
-- 3c. Anlamlı sürüm: ön süzgeç, parmak izi, durum dosyası, `get_generations`.
+- 3a. (YAPILDI) Repo iskeleti + transport.data.gouv.fr istemcisi (`list_feeds`, kapsam süzgeçleri), testler fixture ile.
+- 3b. (YAPILDI) JP'de lisans eşlemesi ve şema listesi.
+- 3c. Anlamlı sürüm: ön süzgeç, parmak izi, durum dosyası, `get_generations`. YAPILDI.
 - 3d. Ülke profili: tatil tablosu, motor ayarı, saat dilimi.
 - 3e. Sayfa ve Atom dil ayarı (TR/EN/FR), bölge adları.
 - 4. `gtfs-fr-data` düzeni ve workflow.

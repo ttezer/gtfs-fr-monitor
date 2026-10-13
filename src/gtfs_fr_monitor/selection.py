@@ -1,8 +1,10 @@
 """Which archived files are versions (docs/DESIGN.md, Anlamlı sürüm).
 
-A version starts where the trips of the dates ahead change. Each file is compared with the last
-file checked before it, not with the last version: a short window (13 days, republished daily)
-shares no date with a version from weeks ago, while consecutive files always overlap.
+A version starts where the trips of the dates ahead change. Each file is compared with a
+reference file: the start of the last version, renewed once half of its dates ahead have passed.
+A short window (13 days, republished daily) would share no date with a version from weeks ago;
+renewing on every file would rewrite the state of every daily feed every day. Comparing with a
+reference also adds up small changes that a day-to-day comparison would each find too small.
 
 Daily, only the newest file is checked. At the start the history is sampled backwards with a step
 that keeps consecutive samples overlapping, within a bounded number of downloads, and the last
@@ -42,7 +44,7 @@ class Version:
 
 @dataclass(frozen=True)
 class Checked:
-    """The last file checked: the next one is compared with it."""
+    """The reference file: the next ones are compared with it."""
 
     candidate: Candidate
     fingerprint: dict[str, str] = field(hash=False, compare=False)
@@ -58,17 +60,18 @@ def _version(c: Candidate, fp: dict[str, str]) -> Version:
 
 def check(versions: list[Version], last: Checked | None, c: Candidate, fingerprint_of: Fingerprinter,
           cfg: SelectionConfig) -> tuple[list[Version], Checked | None]:
-    """Compare one file with the last one checked; a changed one starts a version."""
+    """Compare one file with the reference; a changed one starts a version and becomes the reference."""
     if last is not None and (c.uid == last.candidate.uid or c.published_at <= last.candidate.published_at):
         return versions, last
     if last is not None and not needs_fingerprint(last.candidate, c):
-        return versions, Checked(c, last.fingerprint)  # same trips; later files compare with this one
+        return versions, last  # same trips
     day = publication_day(c)
     fp = fingerprint_of(c, day)
     changed = True if last is None else differs(last.fingerprint, fp, day, cfg.skip_ahead, cfg.skip_edge)
     if changed is not False:  # True, or None: a successive timetable
-        versions = versions + [_version(c, fp)]
-    return versions, Checked(c, fp)
+        return versions + [_version(c, fp)], Checked(c, fp)
+    ahead = sum(1 for d in last.fingerprint if d >= day.isoformat())
+    return versions, (Checked(c, fp) if ahead * 2 <= len(last.fingerprint) else last)
 
 
 def _step(newest: Candidate, cfg: SelectionConfig) -> int:

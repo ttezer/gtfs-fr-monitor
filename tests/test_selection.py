@@ -47,7 +47,27 @@ class CheckTest(unittest.TestCase):
             versions, last = check(versions, last, c, rec, CFG)
         self.assertEqual([v.uid for v in versions], [uid(0)])
         self.assertEqual(versions[0].from_date, "2026-06-01")
-        self.assertEqual(last.candidate.uid, uid(9))
+        self.assertEqual(last.candidate.uid, uid(0))  # 51 of its 60 dates still ahead: kept as the reference
+
+    def test_reference_is_renewed_halfway(self):
+        files = [cand(i, START + timedelta(days=i)) for i in range(40)]
+        rec = Recorder({c.uid: timetable("A") for c in files})
+        versions, last, refs = [], None, []
+        for c in files:
+            versions, last = check(versions, last, c, rec, CFG)
+            refs.append(int(last.candidate.uid[:8], 16))
+        self.assertEqual(sorted(set(refs)), [0, 30])  # day 30: 30 of 60 dates left
+
+    def test_small_changes_add_up(self):
+        # Each day one more date differs from the reference; a day-to-day check would see one date at a time.
+        def drift(i):
+            return lambda day: {(day + timedelta(days=k)).isoformat(): ("B" if k < i else "A") for k in range(60)}
+        files = [cand(i, START + timedelta(days=i)) for i in range(12)]
+        rec = Recorder({c.uid: drift(i) for i, c in enumerate(files)})
+        versions, last = [], None
+        for c in files:
+            versions, last = check(versions, last, c, rec, CFG)
+        self.assertEqual([v.uid for v in versions][:2], [uid(0), uid(8)])  # past the 7 skipped days
 
     def test_change_starts_a_version(self):
         files = [cand(i, START + timedelta(days=i)) for i in range(6)]
@@ -63,7 +83,7 @@ class CheckTest(unittest.TestCase):
         rec = Recorder({a.uid: timetable("A"), b.uid: timetable("B")})
         versions, last = check([], None, a, rec, CFG)
         versions, last = check(versions, last, b, rec, CFG)
-        self.assertEqual((rec.calls, [v.uid for v in versions], last.candidate.uid), ([uid(1)], [uid(1)], uid(2)))
+        self.assertEqual((rec.calls, [v.uid for v in versions], last.candidate.uid), ([uid(1)], [uid(1)], uid(1)))
 
     def test_successive_timetables(self):
         # The old file ends before the new one's dates: no shared date, still a new version.
@@ -102,7 +122,7 @@ class BackfillTest(unittest.TestCase):
         # Each version starts at the first sample on or after the change (within one step).
         self.assertEqual([s // 20 for s in starts], [6, 7, 8, 9])
         self.assertTrue(all(0 <= s % 20 < 7 for s in starts))
-        self.assertEqual(last.candidate.uid, uid(199))
+        self.assertEqual(last.candidate.uid, versions[-1].uid)  # the reference: start of the last version
 
     def test_empty(self):
         self.assertEqual(backfill([], Recorder({}), CFG), ([], None))

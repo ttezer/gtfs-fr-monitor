@@ -48,9 +48,48 @@ JP'deki "yayın" kavramına denk değil.
   `routes`/`stops`/sefer yapısı değişen sürümler; yalnız `calendar_dates` değişimi sayılmaz.
   CSV'deki hash'lerden indirmeden hesaplanabilir.
 
+## Anlamlı sürüm ölçümü (2026-10-13, 11 feed, yalnız CSV metadata)
+
+Kurallar: R0 = her farklı ZIP; R1 = yalnız `calendar_dates`/`feed_info`/`attributions`/
+`object_codes_extension`/`translations` değişimi sayılmaz; R2 = `agency`/`routes`/`stops` değişmeli;
++Ng = son seçilenden en az N gün sonra. Hücre: son 12 aydaki sürüm (son 4 sürümün kapsadığı gün).
+
+| Feed | R0 | R1 | R2 | R1+7g | R1+30g |
+|---|---|---|---|---|---|
+| IDFM (668) | 699 (1) | 699 (1) | 485 (1) | 41 (21) | 10 (90) |
+| Agrégat Grand Est (1344) | 612 (0) | 610 (0) | 529 (0) | 45 (21) | 11 (91) |
+| Agrégat AURA (732) | 401 (0) | 401 (0) | 184 (1) | 41 (21) | 11 (91) |
+| STAR (507) | 432 (2) | 431 (2) | 75 (15) | 48 (21) | 12 (91) |
+| TADAO (606) | 41 (39) | 41 (39) | 12 (46) | 15 (119) | 8 (150) |
+| L'va (566) | 20 (41) | 19 (41) | 19 (41) | 12 (82) | 7 (133) |
+| T2C (850) | 14 (100) | 14 (100) | 14 (100) | 11 (107) | 6 (185) |
+| Cavalaire (1063) | 120 (27) | 1 (381) | 1 (382) | 1 (394) | 1 (445) |
+| Pays des Ecrins (1322) | 60 (128) | 2 | 2 | 2 | 2 |
+| Jybus (687) | 3 (358) | 3 | 3 | 3 | 3 |
+| Le 37 (1372) | 2 | 2 | 2 | 2 | 1 |
+
+Sonuç:
+- Dosya-hash süzgeci (R1) küçük feed'lerde gürültüyü temizliyor (Cavalaire 120 → 1).
+- Büyük feed'lerde işe yaramıyor: her yeniden üretimde `trips`/`stop_times`, çoğu zaman `stops`/`routes` da değişiyor.
+- Zaman aralığı deterministik ama keyfi; gerçek değişikliği gürültüden ayırmaz.
+- Büyük feed'ler için içerik düzeyinde test gerekli: ardışık iki ZIP'i 0.7.0 motoruyla karşılaştırıp
+  anlamsal farkın sıfıra yakın olup olmadığına bakmak (ZIP indirmesi gerekir; IDFM ~158 MB).
+
+## Repo yapısı (öneri, karar bekliyor)
+
+JP: `gtfs-jp-monitor` (public: kod, workflow, Pages) + `gtfs-jp-data` (private: yalnız Actions yazar).
+Pages, workflow'un çalıştığı repodan yayımlanıyor; bir repo = bir site.
+
+FR için:
+- `gtfs-fr-monitor` (public): FR workflow'u, FR adaptörü (transport.data.gouv.fr kaynağı, ülke profili), Pages.
+  Ortak paketleri (`gtfs_jp_semantic`, diff/sınıflandırma/etki/Atom/sayfa) `gtfs-jp-monitor`'den
+  sabit bir commit/tag ile kurar. Bu yerel klasör onun çalışma kopyası olur.
+- `gtfs-fr-data` (private): JP'deki düzenin aynısı; yalnız Actions yazar, ayrı fine-grained token.
+- Ön koşul: JP kodunda kaynak arayüzünün ayrılması (pipeline şu an gtfs-data.jp'ye doğrudan bağlı).
+
 ## Kalan adımlar
 
-1. Anlamlı sürüm kuralını örnek CSV'lerde ölçmek.
+1. ~~Anlamlı sürüm kuralını örnek CSV'lerde ölçmek.~~ Yapıldı; büyük feed'ler için içerik testi açık.
 2. 487 feed'in boyut dağılımı; 100 MB üstü ZIP ve Actions süresi.
 3. Agrégat'lar dahil mi?
 4. 10–20 FR çiftini 0.7.0 motoruyla karşılaştırmak; Fransızca adlarda eşikler.

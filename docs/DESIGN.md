@@ -60,8 +60,13 @@ uyarı yok; ikinci çalışma 7 s, 1 indirme, hiçbir dosya yazılmadı. STAR ve
 
 ## Ülke profili
 
-- Tatil tablosu: Fransa resmî tatilleri (Paskalya'ya bağlı günler hesaplanır), `gtfs-jp-semantic-holidays/1` şemasında.
-- Motor ayarı: JP varsayılanı + `matching.compare_from_publication: true`; Japonca ad ekleri FR'de etkisiz.
+- Tatil tablosu (uygulandı: profile.py, data/fr_holidays.json): resmî takvim API'si
+  `calendrier.api.gouv.fr/jours-feries/metropole.json` (Licence Ouverte), 2006–2031, kaynak sha256 ile.
+  Açık konu: Alsace-Moselle (Kutsal Cuma, 26 Aralık) ve denizaşırı bölgeler; şimdilik tek ulusal tablo.
+- Motor ayarı (uygulandı): JP varsayılanı + `matching.compare_from_publication: true`; Japonca ad ekleri FR'de etkisiz.
+  `run_reports(config=..., holidays_path=...)` ile rapor sürecine verilir (JP 08c0640).
+- Doğrulama (2026-10-13): STAR ardışık çifti → teknik, olay yok; L'va Ağustos → Eylül sürümleri → 24/48 hat,
+  27 saat değişikliği, 4 kaldırılan ve 2 taşınan durak, major; sınıflandırılmamış satır yok.
 - Lisans: `lov2` → `etalab-2.0`, `odc-odbl` → `ODbL-1.0`; `fr-lo`, `mobility-licence`, `notspecified` → `null` (uyarı).
   JP şemasına eklendi (aad9d26); `gtfs_url` deseni FR arşiv sunucusunu kabul ediyor (8f836ff).
 - Diller: TR, EN, FR (sayfa ve Atom).
@@ -71,7 +76,7 @@ uyarı yok; ikinci çalışma 7 s, 1 indirme, hiçbir dosya yazılmadı. STAR ve
 - 3a. (YAPILDI) Repo iskeleti + transport.data.gouv.fr istemcisi (`list_feeds`, kapsam süzgeçleri), testler fixture ile.
 - 3b. (YAPILDI) JP'de lisans eşlemesi ve şema listesi.
 - 3c. Anlamlı sürüm: ön süzgeç, parmak izi, durum dosyası, `get_generations`. YAPILDI.
-- 3d. Ülke profili: tatil tablosu, motor ayarı, saat dilimi.
+- 3d. (YAPILDI) Ülke profili: tatil tablosu, motor ayarı, saat dilimi (published_at Europe/Paris, history.py).
 - 3e. Sayfa ve Atom dil ayarı (TR/EN/FR), bölge adları.
 - 4. `gtfs-fr-data` düzeni ve workflow.
 

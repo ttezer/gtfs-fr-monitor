@@ -152,19 +152,21 @@ def fingerprint(zip_path: Path, after: date, max_days: int = 120) -> dict[str, s
 
 def differs(older: dict[str, str], newer: dict[str, str], after: date, skip_ahead: int = 7, skip_edge: int = 1) -> bool | None:
     """Whether the trips differ on a date both fingerprints cover (a date that loses or gains all
-    its trips counts); None when they share no such date.
+    its trips counts). None when the two share no date from `after` on: successive timetables.
 
-    Compared are the shared dates from `after` up to `skip_edge` days before either validity end,
-    without the first `skip_ahead` of them (at most half, for short windows). Large networks
-    republish short-term adjustments for the next days (works, disruptions); a timetable change
-    that starts soon also runs after them and is still found. The last date of a window is often
-    incomplete (trips after midnight of the next day). Days a rolling window adds after the older
-    validity end are outside the older fingerprint."""
-    if not older or not newer:
+    Compared are the shared dates up to `skip_edge` days before either validity end, without the
+    first `skip_ahead` of them (at most half, for short windows); when that leaves nothing, the
+    two count as the same. Large networks republish short-term adjustments for the next days
+    (works, disruptions); a timetable change that starts soon also runs after them and is still
+    found. The last date of a window is often incomplete (trips after midnight of the next day).
+    Days a rolling window adds after the older validity end are outside the older fingerprint."""
+    if not newer:
+        return bool(older)  # nothing runs any more
+    if not older:
+        return None
+    shared = sorted(d for d in newer if d >= after.isoformat() and d in older)
+    if not shared:
         return None
     last = (min(date.fromisoformat(max(older)), date.fromisoformat(max(newer))) - timedelta(days=skip_edge)).isoformat()
-    ahead = sorted(d for d in newer if after.isoformat() <= d <= last and d in older)
-    common = ahead[min(skip_ahead, len(ahead) // 2):]
-    if not common:
-        return None
-    return any(older[d] != newer[d] for d in common)
+    ahead = [d for d in shared if d <= last]
+    return any(older[d] != newer[d] for d in ahead[min(skip_ahead, len(ahead) // 2):])

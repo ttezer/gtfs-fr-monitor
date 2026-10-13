@@ -90,7 +90,10 @@ class FingerprintTest(unittest.TestCase):
         self.assertIsNone(differs(self.base, nxt, date(2026, 12, 1)))
 
     def test_nothing_ahead(self):
-        self.assertEqual(fingerprint(write(self.dir / "old.zip", end="20261010"), TODAY), {})
+        ended = fingerprint(write(self.dir / "old.zip", end="20261010"), TODAY)
+        self.assertEqual(ended, {})
+        self.assertTrue(differs(self.base, ended, TODAY))  # service stops
+        self.assertFalse(differs({}, ended, TODAY))
 
 
 if __name__ == "__main__":

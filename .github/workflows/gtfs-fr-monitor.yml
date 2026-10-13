@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-24.04 # results must come from x86_64-linux, like gtfs-jp-monitor's
     timeout-minutes: 330
     env:
-      JP_REF: 34926c54f3de04b9fda99189e7a2f3a7fc5af9b8 # gtfs-jp-monitor commit, also in pyproject.toml
+      JP_REF: 0d4d7f258e283cae5ee5ddc3de98eb389d49ed49 # gtfs-jp-monitor commit, also in pyproject.toml
       PYTHONPATH: jp/src:src
       DOWNLOAD_BUDGET: ${{ inputs.download_budget || '1500' }}
       LIMIT: ${{ inputs.limit || '400' }}

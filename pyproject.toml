@@ -6,7 +6,7 @@ requires-python = ">=3.11"
 license = {text = "MIT"}
 # The shared engine and pipeline, pinned to a commit of gtfs-jp-monitor. Locally the sibling
 # checkout is used instead (PYTHONPATH=src:../GTFS-JP/src).
-dependencies = ["gtfs-jp-monitor @ git+https://github.com/ttezer/gtfs-jp-monitor@34926c5"]
+dependencies = ["gtfs-jp-monitor @ git+https://github.com/ttezer/gtfs-jp-monitor@0d4d7f2"]
 
 [project.optional-dependencies]
 dev = ["jsonschema>=4.18"]

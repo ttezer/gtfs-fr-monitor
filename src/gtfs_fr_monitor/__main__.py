@@ -84,8 +84,27 @@ def _cmd_semantic_reports(args: argparse.Namespace) -> int:
     return 0
 
 
+def _mdb_links() -> dict[str, str]:
+    """Mobility Database ids of the feeds; links are a convenience, so a failure leaves them out."""
+    import urllib.request
+
+    from .mobilitydb import CATALOGUE, feed_ids
+    from .tdg import TdgClient
+    try:
+        request = urllib.request.Request(CATALOGUE, headers={"User-Agent": USER_AGENT})
+        with urllib.request.urlopen(request, timeout=120) as response:
+            catalogue = response.read(64 * 1024 * 1024).decode("utf-8")
+        datasets = TdgClient()._http.get_json("/api/datasets")
+        return feed_ids(catalogue, datasets if isinstance(datasets, list) else [])
+    except Exception as err:  # noqa: BLE001 - any failure only drops the links
+        print(f"Mobility Database links left out: {type(err).__name__}: {err}", file=sys.stderr)
+        return {}
+
+
 def _cmd_site_profile(args: argparse.Namespace) -> int:
-    Path(args.output).write_text(json.dumps(site_profile(), ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    mdb = {} if args.no_mdb else _mdb_links()
+    Path(args.output).write_text(json.dumps(site_profile(mdb), ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    print(json.dumps({"mobility_database_links": len(mdb)}))
     return 0
 
 
@@ -123,6 +142,7 @@ def main(argv: list[str] | None = None) -> int:
 
     prof = sub.add_parser("site-profile", help="write the site profile for gtfs_jp_monitor export-web --site-profile")
     prof.add_argument("-o", "--output", required=True)
+    prof.add_argument("--no-mdb", action="store_true", help="leave out the Mobility Database links (no download)")
     prof.set_defaults(func=_cmd_site_profile)
 
     args = parser.parse_args(argv)

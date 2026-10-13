@@ -77,7 +77,12 @@ uyarı yok; ikinci çalışma 7 s, 1 indirme, hiçbir dosya yazılmadı. STAR ve
 - 3b. (YAPILDI) JP'de lisans eşlemesi ve şema listesi.
 - 3c. Anlamlı sürüm: ön süzgeç, parmak izi, durum dosyası, `get_generations`. YAPILDI.
 - 3d. (YAPILDI) Ülke profili: tatil tablosu, motor ayarı, saat dilimi (published_at Europe/Paris, history.py).
-- 3e. Sayfa ve Atom dil ayarı (TR/EN/FR), bölge adları.
+- 3e. (YAPILDI) Sayfa ve Atom dil ayarı (TR/EN/FR), bölge adları. JP: site profili (`export-web --site-profile`,
+  data-model §10.4; ea383b7, b0ad8f4, a6e3153), sayfa ve Atom'da Fransızca metinler, dil anahtarı eşitlik testi.
+  FR: site.py (profil, IGN Plan karoları, GA'sız başlık), regions.py + data/regions.json (geo.api.gouv.fr;
+  557 feed'in 539'unda bölge). JP verisiyle FR profili tarayıcıda denendi: Fransızca arayüz ve rapor, eksik metin yok.
+- 3e açık konuları (4. adımda gerçek FR verisiyle): geçmiş tablosundaki JP'ye özgü sütunlar (API konumu `rid`,
+  JP dosyaları, not), `signature.py`'deki Japonya sınır kutusu (`coordWarn`), doğrulayıcı seçimi (`notice`, `gtfsjp` sekmesi).
 - 4. `gtfs-fr-data` düzeni ve workflow.
 
 ## Ön koşul

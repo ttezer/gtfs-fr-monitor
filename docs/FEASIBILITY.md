@@ -75,21 +75,56 @@ Sonuç:
 - Büyük feed'ler için içerik düzeyinde test gerekli: ardışık iki ZIP'i 0.7.0 motoruyla karşılaştırıp
   anlamsal farkın sıfıra yakın olup olmadığına bakmak (ZIP indirmesi gerekir; IDFM ~158 MB).
 
+## İçerik testi: ardışık iki ZIP (2026-10-13)
+
+Çiftler: STAR 2026-10-12 00:18 → 2026-10-13 00:19 (~11 MB); IDFM 2026-10-12 18:16 → 2026-10-13 06:21 (~158 MB).
+
+Geçerlilik penceresi: STAR iki ZIP'te de 2026-10-06..18 (`feed_info` aynı); IDFM kayan pencere
+(10-09..11-10 → 10-10..11-11).
+
+**Motor 0.7.0, STAR** (40 s, 2,9 GB bellek): 72 hatta `TRIPS_RETIMED`, 9 `SERVICE_REDUCED`; etki minor.
+Motor karşılaştırma için 06–12 Ekim'i seçti, yani yeni ZIP'in yayımından önceki günleri. `from_date`
+olarak yayın tarihini vermek seçimi değiştirmedi.
+
+**Gün bazında kalkış karşılaştırması** (ilk durak + kalkış saati, hat/yön bazında):
+
+| Feed | Gün | Sefer | Aynı | Kayan | Yalnız eski/yeni |
+|---|---|---|---|---|---|
+| STAR | 10-12 (geçmiş) | 6.194 → 6.178 | 5.420 | 757 (742'si ≤2 dk) | 17 / 1 |
+| STAR | 10-14 | 6.198 | 6.198 | 0 | 0 / 0 |
+| IDFM | 10-12 (geçmiş) | 144.803 | 144.796 | 0 | 7 / 7 |
+| IDFM | 10-14 | 144.751 | 144.643 | 2 | 106 / 106 |
+| IDFM | 10-20 | 134.474 | 134.474 | 0 | 0 / 0 |
+| IDFM | 11-05 | 144.343 | 144.343 | 0 | 0 / 0 |
+
+IDFM gün başına ~24 s, ~120 MB bellek (akışlı okuma).
+
+Sonuç:
+- Ardışık yeniden üretimler gelecek günlerde neredeyse aynı. Farklar ya geçmiş günlerde (STAR gerçekleşen
+  saatleri geri yazıyor gibi [Olası]) ya da kısa vadeli küçük düzeltmelerde.
+- Motor FR'de yayın tarihinden sonraki günleri seçmeli; bugün geçmiş günleri seçtiği için STAR'da
+  gürültüyü "72 hatta saat değişikliği" diye raporladı. JP'de bu sorun yoktu çünkü yayınlar ileriye dönük.
+- Anlamlı sürüm için uygulanabilir kural: her ZIP için gelecekteki ortak günlerde hat/yön bazında
+  kalkış parmak izi; parmak izi değişmiyorsa yeni sürüm sayılmaz. Akışlı, ucuz, büyük feed'lerde de çalışır.
+- Bellek riski: STAR'da `stop_times` 85 MB → motor 2,9 GB. IDFM `stop_times` 1,1 GB; doğrusal
+  ölçeklenirse ~35 GB [Varsayım]. GitHub'ın standart runner'ı 16 GB. IDFM ve agrégat'lar mevcut motorla
+  koşamaz; ya başlangıçta dışarıda kalır ya da motorun okuma katmanı akışlı hale getirilir.
+
 ## Repo yapısı (öneri, karar bekliyor)
 
 JP: `gtfs-jp-monitor` (public: kod, workflow, Pages) + `gtfs-jp-data` (private: yalnız Actions yazar).
 Pages, workflow'un çalıştığı repodan yayımlanıyor; bir repo = bir site.
 
 FR için:
-- `gtfs-fr-monitor` (public): FR workflow'u, FR adaptörü (transport.data.gouv.fr kaynağı, ülke profili), Pages.
+- `gtfs-fr-monitor` (public, 2026-10-13 açıldı, `origin`): FR workflow'u, FR adaptörü (transport.data.gouv.fr kaynağı, ülke profili), Pages.
   Ortak paketleri (`gtfs_jp_semantic`, diff/sınıflandırma/etki/Atom/sayfa) `gtfs-jp-monitor`'den
   sabit bir commit/tag ile kurar. Bu yerel klasör onun çalışma kopyası olur.
-- `gtfs-fr-data` (private): JP'deki düzenin aynısı; yalnız Actions yazar, ayrı fine-grained token.
+- `gtfs-fr-data` (private, 2026-10-13 açıldı): JP'deki düzenin aynısı; yalnız Actions yazar, ayrı fine-grained token.
 - Ön koşul: JP kodunda kaynak arayüzünün ayrılması (pipeline şu an gtfs-data.jp'ye doğrudan bağlı).
 
 ## Kalan adımlar
 
-1. ~~Anlamlı sürüm kuralını örnek CSV'lerde ölçmek.~~ Yapıldı; büyük feed'ler için içerik testi açık.
+1. ~~Anlamlı sürüm kuralı ve içerik testi.~~ Yapıldı (STAR, IDFM). Açık: motorda gelecek gün seçimi, büyük feed belleği.
 2. 487 feed'in boyut dağılımı; 100 MB üstü ZIP ve Actions süresi.
 3. Agrégat'lar dahil mi?
 4. 10–20 FR çiftini 0.7.0 motoruyla karşılaştırmak; Fransızca adlarda eşikler.

@@ -1,0 +1,134 @@
+"""transport.data.gouv.fr client: the French feed source (docs/DESIGN.md).
+
+Every response is untrusted: identifiers are validated before they become paths, contact
+fields are not kept. A feed is one GTFS resource of a public-transit dataset:
+org_id = the dataset's datagouv_id, feed_id = the resource id.
+"""
+
+from __future__ import annotations
+
+import urllib.error
+import urllib.parse
+import urllib.request
+from dataclasses import dataclass
+from typing import Callable
+
+from gtfs_jp_monitor.gtfsdatajp import GtfsDataJpClient, Transport
+from gtfs_jp_monitor.ids import is_path_id
+from gtfs_jp_monitor.source import ApiError, FeedRecord, Rejected
+
+BASE_URL = "https://transport.data.gouv.fr"
+HISTORY_HOST = "transport-data-gouv-fr-resource-history-prod.cellar-c2.services.clever-cloud.com"
+USER_AGENT = "gtfs-fr-monitor (+https://github.com/ttezer/gtfs-fr-monitor)"
+
+
+def urllib_transport(url: str, timeout: float) -> tuple[int, dict[str, str], bytes]:
+    request = urllib.request.Request(url, headers={"Accept": "application/json", "User-Agent": USER_AGENT})
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            return response.status, dict(response.headers.items()), response.read()
+    except urllib.error.HTTPError as err:
+        return err.code, dict(err.headers.items()) if err.headers else {}, err.read() or b""
+
+
+def is_history_url(url: object) -> bool:
+    """Download host of archived resources (permanent_url)."""
+    if not isinstance(url, str):
+        return False
+    parts = urllib.parse.urlsplit(url)
+    return parts.scheme == "https" and parts.hostname == HISTORY_HOST and parts.username is None
+
+
+@dataclass(frozen=True)
+class Scope:
+    """Which datasets and resources are monitored (docs/DESIGN.md, Kapsam)."""
+
+    dataset_type: str = "public-transit"
+    excluded_title_prefixes: tuple[str, ...] = ("Agrégat",)  # regional aggregates repeat local feeds
+    excluded_resource_titles: tuple[str, ...] = ("Référentiel complet",)  # all networks in one file
+
+    def dataset_excluded(self, title: str) -> bool:
+        return any(title.casefold().startswith(p.casefold()) for p in self.excluded_title_prefixes)
+
+    def resource_excluded(self, title: str) -> bool:
+        return any(t.casefold() in title.casefold() for t in self.excluded_resource_titles)
+
+
+def _str(value: object) -> str:
+    return value if isinstance(value, str) else ""
+
+
+def _opt_str(value: object) -> str | None:
+    return value if isinstance(value, str) and value != "" else None
+
+
+def _is_gtfs(resource: dict) -> bool:
+    return isinstance(resource, dict) and _str(resource.get("format")).upper() == "GTFS"
+
+
+def _region(dataset: dict) -> int | None:
+    """INSEE region code when the dataset is described by one region; finer areas are not mapped yet."""
+    areas = [a for a in dataset.get("covered_area") or [] if isinstance(a, dict)]
+    regions = {a.get("insee") for a in areas if a.get("type") == "region"}
+    if len(regions) == 1 and len(areas) == 1:
+        code = regions.pop()
+        if isinstance(code, str) and code.isdigit():
+            return int(code)
+    return None
+
+
+class TdgClient:
+    def __init__(self, transport: Transport = urllib_transport, scope: Scope = Scope(),
+                 sleep: Callable[[float], None] | None = None, **http_options) -> None:
+        # The gtfs-data.jp client's request loop (pacing, retries, TLS errors) is source-neutral.
+        if sleep is not None:
+            http_options["sleep"] = sleep
+        self._http = GtfsDataJpClient(base_url=BASE_URL, transport=transport, **http_options)
+        self.scope = scope
+
+    @property
+    def request_count(self) -> int:
+        return self._http.request_count
+
+    def list_feeds(self) -> tuple[list[FeedRecord], list[Rejected]]:
+        body = self._http.get_json("/api/datasets")
+        if not isinstance(body, list):
+            raise ApiError("/api/datasets is not a list")
+        feeds: list[FeedRecord] = []
+        rejected: list[Rejected] = []
+        for ds in body:
+            if not isinstance(ds, dict) or ds.get("type") != self.scope.dataset_type:
+                continue
+            title = " ".join(_str(ds.get("title")).split())
+            gtfs = [r for r in ds.get("resources") or [] if _is_gtfs(r)]
+            if not gtfs or self.scope.dataset_excluded(title):
+                continue
+            org_id = ds.get("datagouv_id")
+            if not is_path_id(org_id):
+                rejected.append(Rejected("INVALID_FEED_ID", _opt_str(org_id), None, None, "datagouv_id does not match the path pattern"))
+                continue
+            kept = [r for r in gtfs if not self.scope.resource_excluded(_str(r.get("title")))]
+            for res in kept:
+                rid = res.get("id")
+                feed_id = str(rid) if isinstance(rid, int) and not isinstance(rid, bool) else None
+                if not is_path_id(feed_id):
+                    rejected.append(Rejected("INVALID_FEED_ID", org_id, None, None, f"resource id {rid!r}"))
+                    continue
+                meta = res.get("metadata") if isinstance(res.get("metadata"), dict) else {}
+                name = title if len(kept) == 1 else f"{title} — {' '.join(_str(res.get('title')).split())}"
+                feeds.append(FeedRecord(
+                    org_id=org_id,
+                    feed_id=feed_id,
+                    feed_name=name,
+                    organization_name=_str((ds.get("publisher") or {}).get("name")),
+                    feed_pref_id=_region(ds),
+                    license_raw=_str(ds.get("licence")),
+                    license_url=None,
+                    is_discontinued=False,  # is_available is the URL's state at the last check, not an end of service
+                    discontinued_date=None,
+                    last_published_at=_opt_str(res.get("updated")),
+                    latest_feed_start_date=_opt_str(meta.get("start_date")),
+                    latest_feed_end_date=_opt_str(meta.get("end_date")),
+                    memo="",
+                ))
+        return feeds, rejected

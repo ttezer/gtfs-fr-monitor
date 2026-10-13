@@ -40,3 +40,16 @@ def engine_config() -> Config:
     republished daily and keep, sometimes rewrite, the days already gone."""
     base = Config.load()
     return dataclasses.replace(base, matching=dict(base.matching, compare_from_publication=True))
+
+
+# Where French stops lie, for the content signature's outside count: metropolitan France with
+# Corsica, then Guadeloupe, Martinique, Guyane, La Réunion and Mayotte. Cross-border lines (Geneva,
+# Basel, Spain) count their foreign stops as outside.
+AREAS = (
+    ((41.0, 51.5), (-5.5, 10.0)),
+    ((15.8, 16.6), (-61.9, -60.9)),
+    ((14.3, 14.95), (-61.3, -60.75)),
+    ((2.0, 6.0), (-54.7, -51.5)),
+    ((-21.5, -20.8), (55.1, 55.9)),
+    ((-13.1, -12.6), (44.9, 45.4)),
+)

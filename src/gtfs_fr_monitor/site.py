@@ -24,6 +24,8 @@ TILES = {
 
 TEXT = {
     "fr": {
+        "coordWarn": "{0} : {1} arrêts hors du territoire français et {2} aux latitude et longitude apparemment inversées ; "
+                     "leurs lignes peuvent s'afficher mal sur les cartes et dans les comparaisons d'itinéraires.",
         "tagline": "Qualité, préparation à la publication et historique des changements des flux de transport.data.gouv.fr",
         "prefecture": "Région",
         "updated": "Dernière mise à jour il y a {0} ({1}, heure de Paris).",
@@ -36,6 +38,8 @@ TEXT = {
                   "Aucune mesure d'audience.",
     },
     "en": {
+        "coordWarn": "The {0}: {1} stops outside French territory and {2} with latitude and longitude apparently swapped; "
+                     "their lines may look wrong on maps and in route comparisons.",
         "tagline": "Feed quality, publication readiness and change history for transport.data.gouv.fr feeds",
         "prefecture": "Region",
         "updated": "Last updated {0} ago ({1} Paris time).",
@@ -47,6 +51,8 @@ TEXT = {
                   "(IGN-F / Géoplateforme). Public holidays: calendrier.api.gouv.fr (metropolitan France). No visitor analytics.",
     },
     "tr": {
+        "coordWarn": "{0}: {1} durak Fransa topraklarının dışında, {2} durakta enlem ve boylam yer değiştirmiş görünüyor; "
+                     "bu durakların hatları haritada ve güzergâh karşılaştırmasında yanlış görünebilir.",
         "tagline": "transport.data.gouv.fr feed'lerinin kalitesi, yayına hazırlığı ve değişiklik geçmişi",
         "prefecture": "Bölge",
         "updated": "Son güncelleme {0} önce ({1}, Paris saati).",
@@ -75,7 +81,8 @@ def profile() -> dict:
     return {
         "site": {
             "name": NAME, "langs": LANGS, "default_lang": "fr", "locale": "fr", "time_zone": "Europe/Paris",
-            "regions": region_names(), "tiles": TILES, "tabs": ["overview", "history", "reports"], "text": TEXT,
+            "regions": region_names(), "tiles": TILES, "tabs": ["overview", "history", "reports"],
+            "hide": ["rid", "jpFiles", "memo"], "text": TEXT,
         },
         "head": head(),
         "atom": {"langs": LANGS, "titles": ATOM_TITLES, "author": NAME, "tag": "gtfs-fr-monitor"},

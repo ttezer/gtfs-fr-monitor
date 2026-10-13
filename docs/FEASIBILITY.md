@@ -110,6 +110,35 @@ Sonuç:
   ölçeklenirse ~35 GB [Varsayım]. GitHub'ın standart runner'ı 16 GB. IDFM ve agrégat'lar mevcut motorla
   koşamaz; ya başlangıçta dışarıda kalır ya da motorun okuma katmanı akışlı hale getirilir.
 
+## Boyut dağılımı (2026-10-13)
+
+Kaynak: 487 veri setinin `/api/datasets/{id}` geçmişindeki en son GTFS sürümü (`zip_metadata` açılmış boyutları).
+553 GTFS kaynağı; 524'ünde `stop_times` boyutu biliniyor, 29'unda geçmiş kaydı yok.
+
+`stop_times.txt` (açılmış): medyan 0,6 MB, p75 3,0, p90 15,5, p99 371, maks 1.110 MB (IDFM).
+JP örneği (623 ZIP) karşılaştırma: medyan 0,2, p90 1,8, p99 11,7, maks 97 MB.
+
+| Aralık | Kaynak |
+|---|---|
+| < 1 MB | 305 |
+| 1–10 MB | 146 |
+| 10–100 MB | 58 |
+| 100–300 MB | 9 |
+| ≥ 300 MB | 6 |
+
+100 MB üstü 15 kaynak: 7 agrégat + IDFM (1.110), Naolib/Nantes (576), TAO/Orléans (293),
+Aix-Marseille (259 ve 108), TBM/Bordeaux (221), Fil Bleu/Tours (147), TCL/Lyon (130).
+
+Eşiğe göre dışarıda kalan, agrégat olmayan feed'ler:
+- 100 MB: IDFM, Aix-Marseille ×2, TCL, TBM, Naolib, Fil Bleu, TAO
+- 200 MB: IDFM, Aix-Marseille, TBM, Naolib, TAO
+- 300 MB: IDFM, Naolib
+
+Bellek tahmini: STAR 85 MB `stop_times` → 2,9 GB (~34×). Doğrusal varsayımla 300 MB → ~10 GB,
+16 GB runner'a sığar; 450 MB üstü sığmaz [Varsayım, ölçülmedi].
+
+En son ZIP'lerin toplamı 1,9 GB (agrégat hariç 1,4 GB) — her sürüm kontrolünde indirilecek üst sınır.
+
 ## Repo yapısı (öneri, karar bekliyor)
 
 JP: `gtfs-jp-monitor` (public: kod, workflow, Pages) + `gtfs-jp-data` (private: yalnız Actions yazar).
@@ -125,7 +154,7 @@ FR için:
 ## Kalan adımlar
 
 1. ~~Anlamlı sürüm kuralı ve içerik testi.~~ Yapıldı (STAR, IDFM). Açık: motorda gelecek gün seçimi, büyük feed belleği.
-2. 487 feed'in boyut dağılımı; 100 MB üstü ZIP ve Actions süresi.
+2. ~~487 feed'in boyut dağılımı.~~ Yapıldı. Açık: bellek ölçeklenmesini 200–300 MB'lık bir feed'de ölçmek.
 3. Agrégat'lar dahil mi?
 4. 10–20 FR çiftini 0.7.0 motoruyla karşılaştırmak; Fransızca adlarda eşikler.
 5. ODbL yükümlülükleri.

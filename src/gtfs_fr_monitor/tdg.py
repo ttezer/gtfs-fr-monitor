@@ -132,3 +132,12 @@ class TdgClient:
                     memo="",
                 ))
         return feeds, rejected
+
+    def get_dataset(self, org_id: str) -> dict:
+        """Details of one dataset, with the last entries of its archived files (`history`)."""
+        if not is_path_id(org_id):
+            raise ApiError(f"invalid dataset id {org_id!r}")
+        body = self._http.get_json(f"/api/datasets/{org_id}")
+        if not isinstance(body, dict):
+            raise ApiError(f"/api/datasets/{org_id} is not an object")
+        return body

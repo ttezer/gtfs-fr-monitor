@@ -1,0 +1,182 @@
+# Catalog and versions + analysis + semantic reports + GitHub Pages site for transport.data.gouv.fr feeds.
+# The stages are gtfs-jp-monitor's, checked out at JP_REF and run with the French source and profile.
+#
+# Required configuration:
+#   secrets.DATA_REPO_TOKEN   fine-grained token, contents: write on ttezer/gtfs-fr-data only
+#   ttezer/gtfs-fr-data has at least one commit (an empty repository cannot be checked out)
+#   Pages: source "GitHub Actions" in this repository's settings
+name: gtfs-fr-monitor
+
+on:
+  schedule:
+    - cron: "30 1 * * *" # 03:30 Paris summer time, 02:30 winter time (GitHub may start scheduled runs late)
+  workflow_dispatch:
+    inputs:
+      download_budget:
+        description: "Downloads for versions in this run (filling the history of new feeds takes up to 31 each)"
+        required: false
+        default: "1500"
+      limit:
+        description: "Maximum versions to analyze in this run"
+        required: false
+        default: "400"
+      report_limit:
+        description: "Maximum semantic change reports to build in this run (newest pairs first)"
+        required: false
+        default: "1000"
+      report_minutes:
+        description: "Time budget for the report step, in minutes (no new report starts after it)"
+        required: false
+        default: "120"
+      only:
+        description: "Optional ORG_ID/FEED_ID to restrict the run to one feed"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gtfs-fr-data-writer
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    runs-on: ubuntu-24.04 # results must come from x86_64-linux, like gtfs-jp-monitor's
+    timeout-minutes: 330
+    env:
+      JP_REF: 34926c54f3de04b9fda99189e7a2f3a7fc5af9b8 # gtfs-jp-monitor commit, also in pyproject.toml
+      PYTHONPATH: jp/src:src
+      DOWNLOAD_BUDGET: ${{ inputs.download_budget || '1500' }}
+      LIMIT: ${{ inputs.limit || '400' }}
+      REPORT_LIMIT: ${{ inputs.report_limit || '1000' }}
+      REPORT_MINUTES: ${{ inputs.report_minutes || '120' }}
+      ONLY: ${{ inputs.only }}
+      TRIGGER: ${{ github.event_name }}
+    steps:
+      - name: Check configuration
+        run: |
+          for v in "$DOWNLOAD_BUDGET" "$LIMIT" "$REPORT_LIMIT" "$REPORT_MINUTES"; do
+            case "$v" in
+              ''|*[!0-9]*) echo "::error::download_budget, limit, report_limit and report_minutes must be positive integers"; exit 1 ;;
+            esac
+          done
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check out gtfs-jp-monitor
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ttezer/gtfs-jp-monitor
+          ref: ${{ env.JP_REF }}
+          path: jp
+          persist-credentials: false
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Unit tests
+        run: |
+          python -m pip install --quiet "jsonschema>=4.18"
+          python -m unittest discover -t . -s tests
+
+      - name: Check out data repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ttezer/gtfs-fr-data
+          token: ${{ secrets.DATA_REPO_TOKEN }}
+          path: data
+
+      - name: Install pinned GTFS Analyzer
+        run: python -m gtfs_jp_monitor install-analyzer --lock analyzer.lock.json --dest "$RUNNER_TEMP/analyzer"
+
+      - name: Sync catalog and versions
+        run: |
+          args=(--download-budget "$DOWNLOAD_BUDGET")
+          if [ -n "$ONLY" ]; then args+=(--only "$ONLY"); fi
+          echo "catalog start $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$RUNNER_TEMP/stages.txt"
+          python -m gtfs_fr_monitor sync-catalog --data-dir data --work-dir "$RUNNER_TEMP/work" \
+            --events-out "$RUNNER_TEMP/catalog-events.json" "${args[@]}"
+          echo "catalog end $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$RUNNER_TEMP/stages.txt"
+
+      - name: Analyze new versions
+        run: |
+          echo "analysis start $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$RUNNER_TEMP/stages.txt"
+          args=(--limit "$LIMIT")
+          if [ -n "$ONLY" ]; then args+=(--only "$ONLY"); fi
+          case "$TRIGGER" in schedule|workflow_dispatch) ;; *) TRIGGER=local ;; esac
+          python -m gtfs_fr_monitor analyze --data-dir data --lock analyzer.lock.json \
+            --analyzer "$RUNNER_TEMP/analyzer/gtfs-analyzer" --trigger "$TRIGGER" \
+            --extra-warnings "$RUNNER_TEMP/catalog-events.json" "${args[@]}"
+          echo "analysis end $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$RUNNER_TEMP/stages.txt"
+
+      - name: Build semantic change reports
+        run: |
+          echo "reports start $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$RUNNER_TEMP/stages.txt"
+          args=(--limit "$REPORT_LIMIT" --max-minutes "$REPORT_MINUTES")
+          if [ -n "$ONLY" ]; then args+=(--only "$ONLY"); fi
+          python -m gtfs_fr_monitor semantic-reports --data-dir data --lock analyzer.lock.json "${args[@]}"
+          echo "reports end $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$RUNNER_TEMP/stages.txt"
+
+      - name: Record storage
+        env:
+          GH_TOKEN: ${{ secrets.DATA_REPO_TOKEN }}
+        run: |
+          args=()
+          if kb=$(gh api repos/ttezer/gtfs-fr-data --jq .size); then args+=(--repo-kb "$kb"); fi
+          python -m gtfs_jp_monitor record-storage --data-dir data "${args[@]}"
+
+      - name: Commit and push data
+        working-directory: data
+        run: |
+          echo "commit start $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$RUNNER_TEMP/stages.txt"
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No data changes."
+            exit 0
+          fi
+          git config user.name "gtfs-fr-monitor"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Update monitoring data (${GITHUB_RUN_ID})"
+          if ! git push -q; then
+            git pull -q --rebase
+            git push -q
+          fi
+          echo "commit end $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$RUNNER_TEMP/stages.txt"
+
+      - name: Build web site
+        run: |
+          release=$(python -c 'import json; print(json.load(open("analyzer.lock.json"))["release_tag"])')
+          python -m gtfs_fr_monitor site-profile -o "$RUNNER_TEMP/site-profile.json"
+          python -m gtfs_jp_monitor export-web --data-dir data --release-tag "$release" --profile auto \
+            --analyzer "$RUNNER_TEMP/analyzer/gtfs-analyzer" --template jp/web/prototype/index.html \
+            --site-profile "$RUNNER_TEMP/site-profile.json" --site-url https://ttezer.github.io/gtfs-fr-monitor/ \
+            --html _site/index.html --bundle-format gz --stages "$RUNNER_TEMP/stages.txt"
+
+      - name: Check storage
+        env:
+          GH_TOKEN: ${{ secrets.DATA_REPO_TOKEN }}
+        run: |
+          args=()
+          if kb=$(gh api repos/ttezer/gtfs-fr-data --jq .size); then args+=(--repo-kb "$kb"); fi
+          python -m gtfs_jp_monitor check-storage --status _site/status.json "${args[@]}" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: _site
+
+  pages:
+    needs: monitor
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

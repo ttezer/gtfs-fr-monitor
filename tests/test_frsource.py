@@ -145,9 +145,11 @@ class FrSourceTest(unittest.TestCase):
         except ImportError:
             return
         import importlib.util
-        helper = Path(__file__).resolve().parents[2] / "GTFS-JP" / "tests" / "schema_support.py"  # sibling checkout
-        if not helper.is_file():
+        here = Path(__file__).resolve().parents[1]  # gtfs-jp-monitor: jp/ in the workflow, a sibling checkout locally
+        helper = next((p for p in (here / "jp", here.parent / "GTFS-JP") if (p / "tests" / "schema_support.py").is_file()), None)
+        if helper is None:
             return
+        helper = helper / "tests" / "schema_support.py"
         spec = importlib.util.spec_from_file_location("jp_schema_support", helper)
         support = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(support)

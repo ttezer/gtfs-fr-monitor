@@ -51,7 +51,7 @@ def read(data_dir: Path, name: str) -> dict:
         gens = []
         for path in sorted((data_dir / "catalog" / "generations").rglob("*.json")):
             gens.extend(json.loads(path.read_text(encoding="utf-8"))["generations"])
-        return {"schema": "gtfs-jp-monitor-catalog-generations/1", "generations": gens}
+        return {"schema": "gtfs-fr-monitor-catalog-generations/1", "generations": gens}
     return json.loads((data_dir / "catalog" / name).read_text(encoding="utf-8"))
 
 

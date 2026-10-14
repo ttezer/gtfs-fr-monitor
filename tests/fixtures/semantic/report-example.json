@@ -484,7 +484,7 @@
   "quality": {
     "analysis_key": "v0.14.0__auto"
   },
-  "schema": "gtfs-jp-semantic-report/1",
+  "schema": "gtfs-fr-semantic-report/1",
   "service_days": {
     "date_changes": [
       {

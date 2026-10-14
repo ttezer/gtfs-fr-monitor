@@ -109,7 +109,7 @@
       }
     }
   },
-  "schema": "gtfs-jp-monitor-diff/1",
+  "schema": "gtfs-fr-monitor-diff/1",
   "scores": {
     "analytics": {
       "after": 84.0,

@@ -31,7 +31,7 @@ class WebExportTest(unittest.TestCase):
                 doc["generation"]["uid"] = uid(n)
                 write_json(generation_path(root, ORG, FEED, uid(n), KEY), doc)
             export, files = build_export(root, KEY)
-        self.assertEqual(export["schema"], "gtfs-jp-monitor-web-export/1")
+        self.assertEqual(export["schema"], "gtfs-fr-monitor-web-export/1")
         self.assertEqual([f["feed_id"] for f in export["feeds"]], [FEED])  # feeds without analyses are left out
         feed = export["feeds"][0]
         self.assertEqual([g["uid"] for g in feed["generations"]], [uid(1), uid(3)])

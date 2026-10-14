@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/ttezer/gtfs-jp-monitor/schemas/semantic-report.schema.json",
-  "title": "gtfs-jp-semantic-report/1",
+  "$id": "https://github.com/ttezer/gtfs-fr-monitor/schemas/semantic-report.schema.json",
+  "title": "gtfs-fr-semantic-report/1",
   "description": "Planner-oriented change report for one consecutive pair of publications (docs/semantic/03-report.md). Language-neutral: codes, numbers, dates and names as published. Places are defined once in `places` and referenced by index everywhere else.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema", "header", "summary", "service_days", "places", "lines", "moves", "other", "accounting", "quality"],
   "properties": {
-    "schema": { "const": "gtfs-jp-semantic-report/1" },
+    "schema": { "const": "gtfs-fr-semantic-report/1" },
 
     "header": {
       "type": "object",

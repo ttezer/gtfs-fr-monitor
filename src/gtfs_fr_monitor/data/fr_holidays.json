@@ -1,5 +1,5 @@
 {
-  "schema": "gtfs-jp-semantic-holidays/1",
+  "schema": "gtfs-fr-semantic-holidays/1",
   "version": "calendrier-metropole-2031-94bb0ddb",
   "source": "https://calendrier.api.gouv.fr/jours-feries/metropole.json",
   "source_sha256": "94bb0ddbfe76edcd50a6be870efc2b199ecba01b7d1d6bc8eec68c7493b4d4ef",

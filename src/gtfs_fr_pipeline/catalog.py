@@ -21,8 +21,8 @@ from .licenses import normalize_license
 from .ordering import GenerationRef, order_generations, rid_order_matches
 from .source import ApiError, CatalogSource, FeedRecord, GenerationRecord, Rejected
 
-FEEDS_SCHEMA = "gtfs-jp-monitor-catalog-feeds/1"
-GENERATIONS_SCHEMA = "gtfs-jp-monitor-catalog-generations/1"
+FEEDS_SCHEMA = "gtfs-fr-monitor-catalog-feeds/1"
+GENERATIONS_SCHEMA = "gtfs-fr-monitor-catalog-generations/1"
 
 FeedKey = tuple[str, str]
 

@@ -64,6 +64,6 @@
     "pattern_shifts": true,
     "renumbering": true
   },
-  "schema": "gtfs-jp-semantic-config/1",
+  "schema": "gtfs-fr-semantic-config/1",
   "special_max_days": 8
 }

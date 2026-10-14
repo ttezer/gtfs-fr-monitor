@@ -27,7 +27,7 @@ import zipfile
 import zlib
 from pathlib import Path
 
-SCHEMA = "gtfs-jp-monitor-content/1"
+SCHEMA = "gtfs-fr-monitor-content/1"
 # Optional fields whose filling is counted (data-model §15).
 FIELDS = {
     "stops.txt": ("wheelchair_boarding", "platform_code", "stop_code", "stop_desc", "parent_station"),

@@ -40,5 +40,5 @@
   },
   "name": "永井運輸バス",
   "org_id": "nagai-unyu",
-  "schema": "gtfs-jp-monitor-feed/1"
+  "schema": "gtfs-fr-monitor-feed/1"
 }

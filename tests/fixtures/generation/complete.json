@@ -64,7 +64,7 @@
       "severity": "LOW"
     }
   },
-  "schema": "gtfs-jp-monitor-generation/1",
+  "schema": "gtfs-fr-monitor-generation/1",
   "scores": {
     "analytics": 84.0,
     "interop": 100.0,

@@ -247,7 +247,7 @@ places every raw difference in one bucket.
 
 ## Report schema
 
-`schemas/semantic-report.schema.json` (`gtfs-jp-semantic-report/1`) is binding; an example is in
+`schemas/semantic-report.schema.json` (`gtfs-fr-semantic-report/1`) is binding; an example is in
 `tests/fixtures/semantic/report-example.json`. Its top level follows the sections above:
 `header`, `summary`, `service_days`, `places`, `lines`, `other`, `accounting`, `quality`.
 

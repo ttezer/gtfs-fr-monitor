@@ -26,7 +26,7 @@ from .metrics import build_metrics
 from .ordering import GenerationRef, order_generations
 from .store import content_digest, generation_path, list_analyses, load_content, load_feed_index, summary_digest
 
-SCHEMA = "gtfs-jp-monitor-web-export/1"
+SCHEMA = "gtfs-fr-monitor-web-export/1"
 LANGS = ("tr", "en", "ja")
 JP_FILES = frozenset({"agency_jp.txt", "office_jp.txt", "routes_jp.txt", "pattern_jp.txt"})
 

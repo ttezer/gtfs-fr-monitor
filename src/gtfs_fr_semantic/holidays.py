@@ -13,7 +13,7 @@ from functools import lru_cache
 from pathlib import Path
 
 DATA_FILE = Path(__file__).with_name("data") / "jp_holidays.json"
-SCHEMA = "gtfs-jp-semantic-holidays/1"
+SCHEMA = "gtfs-fr-semantic-holidays/1"
 # Calendar categories of a date: its weekday, or "hol" on a national holiday (any weekday).
 # Day types are groups of these, found from each feed's calendar (service.py).
 CATEGORIES = ("mon", "tue", "wed", "thu", "fri", "sat", "sun", "hol")

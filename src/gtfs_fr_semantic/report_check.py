@@ -1,4 +1,4 @@
-"""Referential checks for gtfs-jp-semantic-report/1 that JSON Schema cannot express.
+"""Referential checks for gtfs-fr-semantic-report/1 that JSON Schema cannot express.
 
 The engine runs these before writing a report; an empty list means the report is consistent.
 """

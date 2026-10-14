@@ -50,7 +50,7 @@ from .store import (
     write_feed_index,
 )
 
-RUN_SCHEMA = "gtfs-jp-monitor-run/1"
+RUN_SCHEMA = "gtfs-fr-monitor-run/1"
 # Publications analysed before content signatures existed get one when they may be equivalent
 # (same analysis summary as a neighbour); at most this many downloads per run.
 SIGNATURE_LIMIT = 200
@@ -168,7 +168,7 @@ def run_analysis(
         counts["replaced"] = len(replaced)
 
     source_changed: dict[FeedKey, set[str]] = {}
-    with tempfile.TemporaryDirectory(prefix="gtfs-jp-monitor-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="gtfs-fr-monitor-") as tmp:
         work = Path(tmp)
         for item in selected:
             fk = (item.org_id, item.feed_id)

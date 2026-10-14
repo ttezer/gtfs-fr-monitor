@@ -143,7 +143,7 @@ class FrSourceTest(unittest.TestCase):
         self.assertEqual(len(gens[(ORG, FEED)]), 2)
         if not HAVE_JSONSCHEMA:
             return
-        doc = {"schema": "gtfs-jp-monitor-catalog-generations/1", "generations": list(gens[(ORG, FEED)].values())}
+        doc = {"schema": "gtfs-fr-monitor-catalog-generations/1", "generations": list(gens[(ORG, FEED)].values())}
         self.assertEqual(errors(validator("catalog-generations.schema.json"), doc), [])
 
 

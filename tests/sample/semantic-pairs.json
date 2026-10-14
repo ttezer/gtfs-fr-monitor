@@ -1,5 +1,5 @@
 {
- "schema": "gtfs-jp-monitor-semantic-sample/1",
+ "schema": "gtfs-fr-monitor-semantic-sample/1",
  "note": "Fixed publication pairs for comparing semantic engine settings (semantic-compare, docs/semantic/02-matching.md §8).",
  "pairs": [
   {

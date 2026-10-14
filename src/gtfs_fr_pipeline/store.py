@@ -22,7 +22,7 @@ import hashlib
 from .canonical import dumps, write_json_if_changed
 from .ids import feed_dir, is_uid, require_uid
 
-FEED_SCHEMA = "gtfs-jp-monitor-feed/1"
+FEED_SCHEMA = "gtfs-fr-monitor-feed/1"
 UNPINNED_MARKER = ".unpinned-scratch"
 _KEY_RE = re.compile(r"(v[0-9]+\.[0-9]+\.[0-9]+)__(auto|v3|v4)")
 

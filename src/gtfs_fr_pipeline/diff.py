@@ -16,7 +16,7 @@ from .canonical import delta1, write_json_if_changed
 from .ids import feed_dir, is_uid
 from .store import diff_path, generation_path, split_key
 
-SCHEMA = "gtfs-jp-monitor-diff/1"
+SCHEMA = "gtfs-fr-monitor-diff/1"
 _SCORES = ("publish", "overall", "spec", "interop", "quality", "analytics")
 _COUNT_METRICS = ("routes", "stops", "trips", "shapes", "active_service_days")
 

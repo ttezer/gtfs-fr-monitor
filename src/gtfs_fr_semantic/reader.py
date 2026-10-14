@@ -10,7 +10,7 @@ import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 
-CONFIG_SCHEMA = "gtfs-jp-semantic-config/1"
+CONFIG_SCHEMA = "gtfs-fr-semantic-config/1"
 DEFAULT_CONFIG = Path(__file__).with_name("default_config.json")
 
 

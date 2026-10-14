@@ -16,7 +16,7 @@ from gtfs_fr_semantic.reader import Config
 
 HOLIDAYS_FILE = Path(__file__).with_name("data") / "fr_holidays.json"
 HOLIDAYS_SOURCE = "https://calendrier.api.gouv.fr/jours-feries/metropole.json"
-HOLIDAYS_SCHEMA = "gtfs-jp-semantic-holidays/1"
+HOLIDAYS_SCHEMA = "gtfs-fr-semantic-holidays/1"
 
 
 def holiday_doc(raw: bytes, retrieved: str) -> dict:

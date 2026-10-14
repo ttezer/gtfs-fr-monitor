@@ -34,7 +34,7 @@
   "partial": null,
   "publishable": null,
   "rules": null,
-  "schema": "gtfs-jp-monitor-generation/1",
+  "schema": "gtfs-fr-monitor-generation/1",
   "scores": null,
   "summary": null,
   "validation_status": "FATAL"

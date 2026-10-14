@@ -1,4 +1,4 @@
-"""GTFS Analyzer JSON -> gtfs-jp-monitor-generation/1 (data-model §5).
+"""GTFS Analyzer JSON -> gtfs-fr-monitor-generation/1 (data-model §5).
 
 A pure transformation: the same analyzer report and metadata always give the same record.
 Human-readable text (titles, messages, structural error strings) is never copied.
@@ -14,7 +14,7 @@ from typing import Any
 from .canonical import round1, yyyymmdd_to_iso
 from .ids import require_path_id, require_uid
 
-SCHEMA = "gtfs-jp-monitor-generation/1"
+SCHEMA = "gtfs-fr-monitor-generation/1"
 SEVERITIES = ("CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO")
 CLASSES = ("SPEC", "INTEROP", "QUALITY", "ANALYTICS")
 _RULE_ID_RE = re.compile(r"[A-Z]{2,4}_[0-9]{3}[a-z]?")

@@ -40,7 +40,7 @@ from .download import DownloadError, download_zip
 from .ids import is_path_id
 from .store import change_path, diff_path, generation_path, load_feed_index, mark_replaced, split_key
 
-ERROR_SCHEMA = "gtfs-jp-monitor-change-error/1"
+ERROR_SCHEMA = "gtfs-fr-monitor-change-error/1"
 # Each report is built in its own process: memory is returned after every pair, and a pair that
 # needs too much memory or time fails alone instead of taking the whole run down.
 CHILD_TIMEOUT_S = 900

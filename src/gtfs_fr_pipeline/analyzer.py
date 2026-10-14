@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-LOCK_SCHEMA = "gtfs-jp-monitor-analyzer-lock/1"
+LOCK_SCHEMA = "gtfs-fr-monitor-analyzer-lock/1"
 BINARY_NAME = "gtfs-analyzer"
 PROFILES = ("auto", "v3", "v4")
 

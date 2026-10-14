@@ -90,11 +90,11 @@ as evidence references.
 
 ## Output
 
-`gtfs-jp-semantic-rawdiff/1`, serialized canonically (data-model §5.1), stored gzip-compressed:
+`gtfs-fr-semantic-rawdiff/1`, serialized canonically (data-model §5.1), stored gzip-compressed:
 
 ```json
 {
-  "schema": "gtfs-jp-semantic-rawdiff/1",
+  "schema": "gtfs-fr-semantic-rawdiff/1",
   "engine_version": "0.1.0",
   "config": { "bulk_threshold": 100000, "max_rows_per_file": 5000000 },
   "old": { "sha256": "<64 hex>" },

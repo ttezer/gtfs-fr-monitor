@@ -1,7 +1,7 @@
 """Planner report for one pair of publications (docs/semantic/03-report.md).
 
 Joins the raw diff, service days, place, line and trip matches into one
-gtfs-jp-semantic-report/1 document, and accounts for every raw difference.
+gtfs-fr-semantic-report/1 document, and accounts for every raw difference.
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ from .service import build_calendar, choose_comparison, day_type_order, irregula
 from .trips import (Trip, TripPair, align_directions, build_trips, dominant_pattern, match_moved_trips, match_trips,
                     pattern_edits, shift_edits)
 
-SCHEMA = "gtfs-jp-semantic-report/1"
+SCHEMA = "gtfs-fr-semantic-report/1"
 JP_FILES = frozenset({"agency_jp.txt", "office_jp.txt", "routes_jp.txt", "pattern_jp.txt"})
 MAX_MINUTES = 2880
 LINE_STATUS_ORDER = ("added", "discontinued", "renamed", "merged", "split", "restructured", "changed", "unchanged")

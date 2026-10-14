@@ -344,7 +344,7 @@ def main(argv: list[str] | None = None) -> int:
     raw = sub.add_parser("rawdiff", help="list every difference between two GTFS ZIP files (semantic engine, part 1)")
     raw.add_argument("--old", required=True)
     raw.add_argument("--new", required=True)
-    raw.add_argument("-o", "--output", required=True, help="output .json.gz (gtfs-jp-semantic-rawdiff/1)")
+    raw.add_argument("-o", "--output", required=True, help="output .json.gz (gtfs-fr-semantic-rawdiff/1)")
     raw.set_defaults(func=_cmd_rawdiff)
 
     rep = sub.add_parser("semantic-report", help="planner change report for two publications (semantic engine, part 3)")

@@ -23,8 +23,8 @@ from .download import download_zip
 from .gtfsdatajp import BASE_URL
 from .ids import is_path_id, is_uid
 
-SAMPLE_SCHEMA = "gtfs-jp-monitor-semantic-sample/1"
-RESULT_SCHEMA = "gtfs-jp-monitor-semantic-compare/1"
+SAMPLE_SCHEMA = "gtfs-fr-monitor-semantic-sample/1"
+RESULT_SCHEMA = "gtfs-fr-monitor-semantic-compare/1"
 COUNTS = ("places_added", "places_removed", "places_renamed", "places_moved", "trip_moves", "pattern_edits",
           "unclassified", "unmatched_lines", "lines_changed")
 

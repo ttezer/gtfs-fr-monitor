@@ -1,5 +1,5 @@
 {
-  "schema": "gtfs-jp-monitor-classification/1",
+  "schema": "gtfs-fr-monitor-classification/1",
   "description": "Which changes of a semantic report are passenger-facing (data-model §12). Anything not listed here counts as passenger-facing.",
   "summary": {
     "lines": ["added", "discontinued", "renamed", "merged", "split", "restructured", "changed"],

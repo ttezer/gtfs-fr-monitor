@@ -1071,7 +1071,7 @@
   },
   "last_year": 2027,
   "retrieved": "2026-09-24",
-  "schema": "gtfs-jp-semantic-holidays/1",
+  "schema": "gtfs-fr-semantic-holidays/1",
   "source": "https://www8.cao.go.jp/chosei/shukujitsu/syukujitsu.csv",
   "source_sha256": "cec37a743c96995cdb9cb52b685c9003634682a9b0e1a640a6b9b96881fe964a",
   "version": "cao-2027-cec37a74"

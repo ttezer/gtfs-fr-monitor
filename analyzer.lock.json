@@ -12,6 +12,6 @@
   "production_platform": "x86_64-linux",
   "release_tag": "v0.15.0",
   "repository": "ttezer/gtfs-analyzer",
-  "schema": "gtfs-jp-monitor-analyzer-lock/1",
+  "schema": "gtfs-fr-monitor-analyzer-lock/1",
   "version": "0.15.0"
 }

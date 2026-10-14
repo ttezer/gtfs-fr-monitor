@@ -15,7 +15,7 @@ from gtfs_fr_pipeline.canonical import dumps
 from . import ENGINE_VERSION
 from .reader import Config, Feed, Table, read_feed
 
-SCHEMA = "gtfs-jp-semantic-rawdiff/1"
+SCHEMA = "gtfs-fr-semantic-rawdiff/1"
 
 # Primary keys from the GTFS / GTFS-JP specifications. None = single-row file.
 FIXED_KEYS: dict[str, tuple[str, ...] | None] = {

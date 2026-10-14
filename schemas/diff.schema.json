@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/ttezer/gtfs-jp-monitor/schemas/diff.schema.json",
-  "title": "gtfs-jp-monitor-diff/1",
+  "$id": "https://github.com/ttezer/gtfs-fr-monitor/schemas/diff.schema.json",
+  "title": "gtfs-fr-monitor-diff/1",
   "description": "Validation diff between two COMPLETE generations analysed with the same analyzer binary, profile and platform (data-model §9). The builder also enforces old_uid != new_uid and one-decimal deltas.",
   "type": "object",
   "additionalProperties": false,
@@ -20,7 +20,7 @@
     "rules"
   ],
   "properties": {
-    "schema": { "const": "gtfs-jp-monitor-diff/1" },
+    "schema": { "const": "gtfs-fr-monitor-diff/1" },
     "feed": {
       "type": "object",
       "additionalProperties": false,

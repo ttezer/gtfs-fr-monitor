@@ -4,9 +4,9 @@ import zipfile
 from datetime import date
 from pathlib import Path
 
-from gtfs_jp_semantic.holidays import default_table
-from gtfs_jp_semantic.reader import Config, read_feed
-from gtfs_jp_semantic.service import build_calendar, choose_comparison
+from gtfs_fr_semantic.holidays import default_table
+from gtfs_fr_semantic.reader import Config, read_feed
+from gtfs_fr_semantic.service import build_calendar, choose_comparison
 
 CONFIG = Config(100, 1_000_000, 100_000_000, special_max_days=10, min_overlap_days=14, matching=Config.load().matching)
 WEEKDAYS = "mon,tue,wed,thu,fri"

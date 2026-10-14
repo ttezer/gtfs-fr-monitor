@@ -186,7 +186,7 @@ viewer's TR / EN / JA catalogue.
 
 ## Builder
 
-`gtfs_jp_semantic.report.build_report` assembles the report; `gtfs_jp_semantic.accounting`
+`gtfs_fr_semantic.report.build_report` assembles the report; `gtfs_fr_semantic.accounting`
 places every raw difference in one bucket.
 
 - **Line entries.** One entry per line match (Part 2 §4). Its key is the new line key, or the
@@ -258,4 +258,4 @@ places every raw difference in one bucket.
 - Times are minutes after midnight of the service day (values above 1440 after midnight).
 - References JSON Schema cannot express (indices in range, one time per timetable row, every
   trip in `pairs` exactly once, coverage parts adding up) are checked by
-  `gtfs_jp_semantic.report_check.check_report` before a report is written.
+  `gtfs_fr_semantic.report_check.check_report` before a report is written.

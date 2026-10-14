@@ -5,7 +5,7 @@ import unittest
 import urllib.error
 from pathlib import Path
 
-from gtfs_jp_monitor.download import DownloadError, _HttpsOnlyRedirects, download_zip
+from gtfs_fr_pipeline.download import DownloadError, _HttpsOnlyRedirects, download_zip
 
 URL = "https://api.gtfs-data.jp/v2/organizations/o/feeds/f/files/feed.zip?uid=17ab34e1-dcb8-4b2e-9cda-ae2b68f4c444"
 SIGNED = "https://bucket.s3.amazonaws.com/feed.zip?AWSAccessKeyId=SECRETKEY&Signature=abc"

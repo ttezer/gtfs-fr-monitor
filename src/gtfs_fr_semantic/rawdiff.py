@@ -10,7 +10,7 @@ import gzip
 import io
 from pathlib import Path
 
-from gtfs_jp_monitor.canonical import dumps
+from gtfs_fr_pipeline.canonical import dumps
 
 from . import ENGINE_VERSION
 from .reader import Config, Feed, Table, read_feed

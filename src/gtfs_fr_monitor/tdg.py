@@ -13,9 +13,9 @@ import urllib.request
 from dataclasses import dataclass
 from typing import Callable
 
-from gtfs_jp_monitor.gtfsdatajp import GtfsDataJpClient, Transport
-from gtfs_jp_monitor.ids import is_path_id
-from gtfs_jp_monitor.source import ApiError, FeedRecord, Rejected
+from gtfs_fr_pipeline.gtfsdatajp import GtfsDataJpClient, Transport
+from gtfs_fr_pipeline.ids import is_path_id
+from gtfs_fr_pipeline.source import ApiError, FeedRecord, Rejected
 
 from .regions import dataset_region
 

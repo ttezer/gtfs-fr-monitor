@@ -1,4 +1,4 @@
-"""Command line entry point: `python -m gtfs_jp_monitor <command>`."""
+"""Command line entry point: `python -m gtfs_fr_pipeline <command>`."""
 
 from __future__ import annotations
 
@@ -102,7 +102,7 @@ def _cmd_analyze(args: argparse.Namespace) -> int:
 
 
 def _cmd_rawdiff(args: argparse.Namespace) -> int:
-    from gtfs_jp_semantic.rawdiff import diff_zips, gzip_bytes
+    from gtfs_fr_semantic.rawdiff import diff_zips, gzip_bytes
 
     doc = diff_zips(Path(args.old), Path(args.new))
     Path(args.output).write_bytes(gzip_bytes(doc))
@@ -115,8 +115,8 @@ def _cmd_rawdiff(args: argparse.Namespace) -> int:
 
 
 def _cmd_semantic_report(args: argparse.Namespace) -> int:
-    from gtfs_jp_semantic.rawdiff import gzip_bytes
-    from gtfs_jp_semantic.report import build_report
+    from gtfs_fr_semantic.rawdiff import gzip_bytes
+    from gtfs_fr_semantic.report import build_report
 
     from .canonical import write_json
     from .catalog import load_catalog
@@ -165,7 +165,7 @@ DEFAULT_SAMPLE = Path(__file__).resolve().parents[2] / "tests" / "sample" / "sem
 
 
 def _cmd_semantic_compare(args: argparse.Namespace) -> int:
-    from gtfs_jp_semantic.reader import Config
+    from gtfs_fr_semantic.reader import Config
 
     from .canonical import write_json
     from .semantic_compare import apply_override, compare, load_sample, summary_text
@@ -223,7 +223,7 @@ def _cmd_export_web(args: argparse.Namespace) -> int:
                 raise SystemExit(str(err)) from None
         Path(args.html).parent.mkdir(parents=True, exist_ok=True)
         Path(args.html).write_text(template.replace("/*__EXPORT__*/", payload), encoding="utf-8")
-        from gtfs_jp_semantic.rawdiff import gzip_bytes
+        from gtfs_fr_semantic.rawdiff import gzip_bytes
 
         from .canonical import dumps
 
@@ -304,7 +304,7 @@ def _cmd_record_storage(args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="gtfs_jp_monitor")
+    parser = argparse.ArgumentParser(prog="gtfs_fr_pipeline")
     sub = parser.add_subparsers(dest="command", required=True)
 
     sync = sub.add_parser("sync-catalog", help="refresh catalog/feeds.json and catalog/generations.json")

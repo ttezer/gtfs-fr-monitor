@@ -2,9 +2,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from gtfs_jp_monitor.canonical import write_json
-from gtfs_jp_monitor.ids import InvalidIdentifier
-from gtfs_jp_monitor.store import (
+from gtfs_fr_pipeline.canonical import write_json
+from gtfs_fr_pipeline.ids import InvalidIdentifier
+from gtfs_fr_pipeline.store import (
     UNPINNED_MARKER,
     StoreError,
     analysis_key,

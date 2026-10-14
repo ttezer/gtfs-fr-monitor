@@ -5,12 +5,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from gtfs_jp_monitor.canonical import write_json
-from gtfs_jp_monitor.catalog import sync_catalog
-from gtfs_jp_monitor.store import change_path, generation_path
-from gtfs_jp_semantic import ENGINE_VERSION
-from gtfs_jp_semantic.rawdiff import gzip_bytes
-from gtfs_jp_monitor.webexport import (build_export, compact_rules, comparator_state, estimate_pair, growth, method_fingerprint,
+from gtfs_fr_pipeline.canonical import write_json
+from gtfs_fr_pipeline.catalog import sync_catalog
+from gtfs_fr_pipeline.store import change_path, generation_path
+from gtfs_fr_semantic import ENGINE_VERSION
+from gtfs_fr_semantic.rawdiff import gzip_bytes
+from gtfs_fr_pipeline.webexport import (build_export, compact_rules, comparator_state, estimate_pair, growth, method_fingerprint,
                                        read_stages, record_storage, storage_warnings)
 
 from .schema_support import FIXTURES, load_json
@@ -95,7 +95,7 @@ class WebExportTest(unittest.TestCase):
         self.assertEqual(doc["header"]["old"]["memo"], "new")  # newest not above this engine
 
     def test_superseded_reports_only_for_pairs_being_rebuilt(self):
-        from gtfs_jp_monitor.webexport import report_files
+        from gtfs_fr_pipeline.webexport import report_files
 
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

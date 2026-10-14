@@ -1,4 +1,4 @@
-"""The French site's profile for gtfs-jp-monitor's page and Atom feeds (its data-model §10.4).
+"""The site profile for the page and Atom feeds (gtfs_fr_pipeline, docs/data-model.md §10.4).
 
 Passed to `export-web --site-profile`. Texts are JSON strings; "{0}", "{1}" stand for the
 arguments of the page's own text with the same key.

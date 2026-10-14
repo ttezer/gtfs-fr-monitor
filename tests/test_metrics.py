@@ -1,7 +1,7 @@
 import datetime as dt
 import unittest
 
-from gtfs_jp_monitor.metrics import build_metrics
+from gtfs_fr_pipeline.metrics import build_metrics
 
 
 def gen(uid, day, pair=None, status="COMPLETE", publish=100.0, rules=None, fmt=False):

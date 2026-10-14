@@ -1,8 +1,8 @@
 """Command line entry point: `python -m gtfs_fr_monitor <command>`.
 
-The stages of gtfs-jp-monitor, run with the French source, downloads and profile. Installing the
-analyzer, recording storage and building the site use gtfs-jp-monitor's own commands
-(`python -m gtfs_jp_monitor install-analyzer | record-storage | check-storage | export-web`).
+The pipeline's stages (gtfs_fr_pipeline), run with the French source, downloads and profile. Installing
+the analyzer, recording storage and building the site use the pipeline's own commands
+(`python -m gtfs_fr_pipeline install-analyzer | record-storage | check-storage | export-web`).
 """
 
 from __future__ import annotations
@@ -14,12 +14,12 @@ import json
 import sys
 from pathlib import Path
 
-from gtfs_jp_monitor.analyzer import AnalyzerBinary, Lock, pinned_release_for
-from gtfs_jp_monitor.catalog import sync_catalog
-from gtfs_jp_monitor.download import download_zip, urllib_opener
-from gtfs_jp_monitor.ids import is_path_id
-from gtfs_jp_monitor.pipeline import run_analysis
-from gtfs_jp_monitor.store import analysis_key
+from gtfs_fr_pipeline.analyzer import AnalyzerBinary, Lock, pinned_release_for
+from gtfs_fr_pipeline.catalog import sync_catalog
+from gtfs_fr_pipeline.download import download_zip, urllib_opener
+from gtfs_fr_pipeline.ids import is_path_id
+from gtfs_fr_pipeline.pipeline import run_analysis
+from gtfs_fr_pipeline.store import analysis_key
 
 from .frsource import FrSource, Settings
 from .profile import AREAS, HOLIDAYS_FILE, engine_config
@@ -73,7 +73,7 @@ def _cmd_analyze(args: argparse.Namespace) -> int:
 
 
 def _cmd_semantic_reports(args: argparse.Namespace) -> int:
-    from gtfs_jp_monitor.changes import run_reports
+    from gtfs_fr_pipeline.changes import run_reports
 
     key = analysis_key(Lock.load(Path(args.lock)).release_tag, PROFILE)
     run = run_reports(Path(args.data_dir), key, limit=args.limit, only=set(args.only) if args.only else None,
@@ -140,7 +140,7 @@ def main(argv: list[str] | None = None) -> int:
     reps.add_argument("--max-minutes", type=float)
     reps.set_defaults(func=_cmd_semantic_reports)
 
-    prof = sub.add_parser("site-profile", help="write the site profile for gtfs_jp_monitor export-web --site-profile")
+    prof = sub.add_parser("site-profile", help="write the site profile for gtfs_fr_pipeline export-web --site-profile")
     prof.add_argument("-o", "--output", required=True)
     prof.add_argument("--no-mdb", action="store_true", help="leave out the Mobility Database links (no download)")
     prof.set_defaults(func=_cmd_site_profile)

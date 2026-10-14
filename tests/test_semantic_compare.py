@@ -3,10 +3,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from gtfs_jp_monitor.download import Downloaded, DownloadError
-from gtfs_jp_monitor.semantic_compare import (apply_override, check_expect, compare, load_sample, summarise,
+from gtfs_fr_pipeline.download import Downloaded, DownloadError
+from gtfs_fr_pipeline.semantic_compare import (apply_override, check_expect, compare, load_sample, summarise,
                                               summary_text, zip_path)
-from gtfs_jp_semantic.reader import Config
+from gtfs_fr_semantic.reader import Config
 
 from .test_semantic_report import NEW, OLD, PUB, write_zip
 

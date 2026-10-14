@@ -1,7 +1,7 @@
 import unittest
 
-from gtfs_jp_semantic.reader import Config, Table
-from gtfs_jp_semantic.trips import (
+from gtfs_fr_semantic.reader import Config, Table
+from gtfs_fr_semantic.trips import (
     Trip,
     align_directions,
     build_trips,

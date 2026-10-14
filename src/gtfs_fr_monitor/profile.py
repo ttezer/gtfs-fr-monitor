@@ -11,8 +11,8 @@ import hashlib
 import json
 from pathlib import Path
 
-from gtfs_jp_semantic.holidays import HolidayTable
-from gtfs_jp_semantic.reader import Config
+from gtfs_fr_semantic.holidays import HolidayTable
+from gtfs_fr_semantic.reader import Config
 
 HOLIDAYS_FILE = Path(__file__).with_name("data") / "fr_holidays.json"
 HOLIDAYS_SOURCE = "https://calendrier.api.gouv.fr/jours-feries/metropole.json"

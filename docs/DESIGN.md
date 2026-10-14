@@ -1,6 +1,6 @@
 # GTFS-FR monitor — tasarım (3. adım)
 
-Motor ve işlem hattı (`src/gtfs_jp_semantic`, `src/gtfs_jp_monitor`, `web/prototype/index.html`, `schemas/`,
+Motor ve işlem hattı (`src/gtfs_fr_semantic`, `src/gtfs_fr_pipeline`, `web/prototype/index.html`, `schemas/`,
 testleri ve `docs/data-model.md`, `docs/semantic/`) bu repoda: 2026-10-14'te `gtfs-jp-monitor`'ün 0d4d7f2 commit'inden
 kopyalandı ve o tarihten sonra burada bağımsız geliştirilir. İki proje birbirini etkilemez; bir düzeltme gerekirse
 ayrıca taşınır. Paket adları şimdilik aynı kaldı. Fransa'ya özgü kod `src/gtfs_fr_monitor`'da.

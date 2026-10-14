@@ -3,9 +3,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from gtfs_jp_semantic.events import evidence_index, ranges
-from gtfs_jp_semantic.reader import Config
-from gtfs_jp_semantic.report import build_report
+from gtfs_fr_semantic.events import evidence_index, ranges
+from gtfs_fr_semantic.reader import Config
+from gtfs_fr_semantic.report import build_report
 
 from .schema_support import HAVE_JSONSCHEMA, errors, validator
 from .test_semantic_report import NEW, OLD, PUB, write_zip

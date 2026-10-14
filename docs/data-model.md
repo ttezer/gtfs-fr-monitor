@@ -92,7 +92,7 @@ The summary alone is not enough: stop names, coordinates, times and fares can ch
 count and rule result stays the same. The signature ignores how the ZIP is packed (member order,
 compression, BOM, line endings, CSV quoting, column and row order) but never merges different
 values: nothing is trimmed, case-folded, rounded or decoded lossily, and a file that is not
-regular UTF-8 CSV is compared byte for byte (`src/gtfs_jp_monitor/signature.py`). A publication
+regular UTF-8 CSV is compared byte for byte (`src/gtfs_fr_pipeline/signature.py`). A publication
 without a signature for its analysed ZIP is never equivalent. The analysis run signs every ZIP
 it downloads and, up to a limit per run, publications analysed before signatures existed whose
 summary equals a neighbour's.
@@ -189,7 +189,7 @@ share one `limit`, so the time budget of a run does not grow during the fill.
 
 ## §9 Validation diffs
 
-- `schemas/diff.schema.json` is binding; `build_diff` in `src/gtfs_jp_monitor/diff.py` is the
+- `schemas/diff.schema.json` is binding; `build_diff` in `src/gtfs_fr_pipeline/diff.py` is the
   reference algorithm. Any client comparing two generations must reproduce it.
 - Stored diffs cover consecutive pairs only: neighbours in §2 order that both have a `COMPLETE`
   analysis for the key. Generations in between without one are listed in `skipped_uids`;
@@ -282,7 +282,7 @@ catches a monitoring workflow that fails and one that does not start at all.
 ### §10.3 Atom feeds
 
 People who want to hear of important changes subscribe in a feed reader; nothing is sent and
-nothing needs an account (`src/gtfs_jp_monitor/atom.py`). For each page language (`tr`, `en`, `ja`)
+nothing needs an account (`src/gtfs_fr_pipeline/atom.py`). For each page language (`tr`, `en`, `ja`)
 the site has one Atom feed per transit feed with at least one report of major impact (§12.1), its
 20 newest such reports, and one for all feeds with the 50 newest. An entry is one report: its id a
 `tag:` URI of the pair, its time the new publication's `published_at` (else its start date), its
@@ -323,7 +323,7 @@ The page carries texts in `tr`, `en`, `fr` and `ja`; a test keeps their keys equ
 - One report per pair of neighbouring publications as the web page shows them: analysed for
   the key and not `FATAL` (`PARTIAL` counts, since the engine reads the ZIP, not the validation
   result); unanalysed publications are passed over, a `FATAL` one breaks the chain, and
-  equivalent pairs (§4.2) get no report. `report_pairs` in `src/gtfs_jp_monitor/changes.py`
+  equivalent pairs (§4.2) get no report. `report_pairs` in `src/gtfs_fr_pipeline/changes.py`
   is the reference.
 - Pairs the page can compare beyond neighbours are reported as well: every non-neighbouring
   pair of the window without a `FATAL` side (`page_pairs`). They are queued after the
@@ -350,7 +350,7 @@ The page carries texts in `tr`, `en`, `fr` and `ja`; a test keeps their keys equ
 ## §12 Pair classification
 
 Every exported publication after the first carries the class of the pair it forms with the
-publication before it (`pair` in the page data; `src/gtfs_jp_monitor/classify.py`):
+publication before it (`pair` in the page data; `src/gtfs_fr_pipeline/classify.py`):
 
 | Code | Class | When |
 |---|---|---|
@@ -365,7 +365,7 @@ number of publications. `format_transition: true` marks a pair whose GTFS-JP ext
 differ; validation results across it are not like for like. Results under different analysis
 keys are never compared (§4).
 
-Which report changes are passenger-facing is set in `src/gtfs_jp_monitor/classification.json`:
+Which report changes are passenger-facing is set in `src/gtfs_fr_pipeline/classification.json`:
 
 - every change of lines and places, trips per day type, first and last departures, trips moved
   between lines, date changes and fares;
@@ -387,7 +387,7 @@ reasons, the rule codes that decided it.
 ### §12.1 Impact
 
 Reports with events (docs/semantic/03-report.md §8, engine 0.7.0 with `report.events`) also get an
-impact when the site is built (`src/gtfs_jp_monitor/impact.py`, rules in the `impact` section of
+impact when the site is built (`src/gtfs_fr_pipeline/impact.py`, rules in the `impact` section of
 `classification.json`, so changing them needs no new reports). Every event is:
 
 - **major**: a line added, discontinued, merged, split or restructured; a stop a line serves
@@ -435,7 +435,7 @@ says why a selected pair is not `COMPARABLE`; it knows `SAME_FEED` for neighbour
 
 ## §13 Metrics over time
 
-`export-web` writes `metrics.json` (`src/gtfs_jp_monitor/metrics.py`) per feed and in total, over
+`export-web` writes `metrics.json` (`src/gtfs_fr_pipeline/metrics.py`) per feed and in total, over
 the last 365 days by publication date. It carries its window (`from`, `to`), the analysis key
 and the engine version. Pairs are those of §12 whose newer publication falls in the window.
 

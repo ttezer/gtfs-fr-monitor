@@ -18,7 +18,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from gtfs_jp_semantic.accounting import CORE_COLUMNS
+from gtfs_fr_semantic.accounting import CORE_COLUMNS
 
 RULES_PATH = Path(__file__).with_name("classification.json")
 

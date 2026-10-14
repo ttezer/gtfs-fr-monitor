@@ -2,8 +2,8 @@ import re
 import unicodedata
 import unittest
 
-from gtfs_jp_semantic.lines import build_lines, line_key, match_lines
-from gtfs_jp_semantic.reader import Config, Table
+from gtfs_fr_semantic.lines import build_lines, line_key, match_lines
+from gtfs_fr_semantic.reader import Config, Table
 
 CFG = Config.load().matching
 

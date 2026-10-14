@@ -1,6 +1,6 @@
 import unittest
 
-from gtfs_jp_semantic.geometry import compare, encode, length_m, simplify
+from gtfs_fr_semantic.geometry import compare, encode, length_m, simplify
 
 # About 111 m per 0.001 degree of latitude.
 def north(n, lon=135.0, step=0.001):

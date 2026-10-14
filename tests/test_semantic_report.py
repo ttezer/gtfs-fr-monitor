@@ -3,11 +3,11 @@ import unittest
 import zipfile
 from pathlib import Path
 
-from gtfs_jp_monitor.canonical import dumps
-from gtfs_jp_semantic.accounting import Evidence, classify
-from gtfs_jp_semantic.report import _attribute_details, _date_changes, _rows_for, build_report
-from gtfs_jp_semantic.trips import Trip
-from gtfs_jp_semantic.report_check import check_report
+from gtfs_fr_pipeline.canonical import dumps
+from gtfs_fr_semantic.accounting import Evidence, classify
+from gtfs_fr_semantic.report import _attribute_details, _date_changes, _rows_for, build_report
+from gtfs_fr_semantic.trips import Trip
+from gtfs_fr_semantic.report_check import check_report
 
 from .schema_support import HAVE_JSONSCHEMA, errors, validator
 
@@ -256,7 +256,7 @@ class RenumberingTest(unittest.TestCase):
     def test_counts_identifiers_changed_without_service_change(self):
         import dataclasses
 
-        from gtfs_jp_semantic.reader import Config
+        from gtfs_fr_semantic.reader import Config
 
         renumbered = dict(OLD, **{
             "stops.txt": OLD["stops.txt"].replace("S3,", "S3b,"),
@@ -283,7 +283,7 @@ class DwellTest(unittest.TestCase):
     def test_median_minutes_standing_at_stops(self):
         import dataclasses
 
-        from gtfs_jp_semantic.reader import Config
+        from gtfs_fr_semantic.reader import Config
 
         # Every new trip of line 1 now stands two minutes at 市役所 (arrives 06:48, leaves 06:50, ...).
         slower = dict(NEW, **{"stop_times.txt": "".join(
@@ -309,7 +309,7 @@ class PatternShiftTest(unittest.TestCase):
     def test_a_detour_served_by_other_trips(self):
         import dataclasses
 
-        from gtfs_jp_semantic.reader import Config
+        from gtfs_fr_semantic.reader import Config
 
         # Line 1: the 06:40 trip used to go round by 病院 and the 07:40 one not; now the other way round.
         old = dict(OLD, **{"trips.txt": "route_id,service_id,trip_id,direction_id\nR1,WK,T1,0\nR1,WK,T2,0\n",

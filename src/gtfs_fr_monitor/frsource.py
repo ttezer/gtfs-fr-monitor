@@ -13,9 +13,9 @@ from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 
-from gtfs_jp_monitor.download import DownloadError, download_zip, urllib_opener
-from gtfs_jp_monitor.ids import is_path_id
-from gtfs_jp_monitor.source import ApiError, FeedGenerations, GenerationRecord, Rejected
+from gtfs_fr_pipeline.download import DownloadError, download_zip, urllib_opener
+from gtfs_fr_pipeline.ids import is_path_id
+from gtfs_fr_pipeline.source import ApiError, FeedGenerations, GenerationRecord, Rejected
 
 from .fingerprint import FingerprintError, fingerprint, validity_end
 from .history import Candidate, from_csv, from_dataset, numeric_dataset_id

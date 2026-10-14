@@ -5,9 +5,9 @@ import unittest
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
-from gtfs_jp_monitor.atom import LABELS, build_atom
-from gtfs_jp_monitor.classify import load_rules
-from gtfs_jp_monitor.impact import assess
+from gtfs_fr_pipeline.atom import LABELS, build_atom
+from gtfs_fr_pipeline.classify import load_rules
+from gtfs_fr_pipeline.impact import assess
 
 from .test_semantic_events import build
 from .test_semantic_report import NEW, OLD

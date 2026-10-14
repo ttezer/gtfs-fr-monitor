@@ -4,7 +4,7 @@ import unittest
 import zipfile
 from pathlib import Path
 
-from gtfs_jp_semantic.reader import ArchiveError, Config, read_feed
+from gtfs_fr_semantic.reader import ArchiveError, Config, read_feed
 
 CONFIG = Config(bulk_threshold=100, max_rows_per_file=1000, max_uncompressed_bytes=10_000_000)
 

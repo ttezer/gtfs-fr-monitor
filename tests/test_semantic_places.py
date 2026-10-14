@@ -1,7 +1,7 @@
 import unittest
 
-from gtfs_jp_semantic.places import NameNormaliser, build_places, match_places, place_of_stop
-from gtfs_jp_semantic.reader import Config, Table
+from gtfs_fr_semantic.places import NameNormaliser, build_places, match_places, place_of_stop
+from gtfs_fr_semantic.reader import Config, Table
 
 CFG = Config.load().matching
 HEADER = ("stop_id", "stop_name", "stop_lat", "stop_lon", "location_type", "parent_station")

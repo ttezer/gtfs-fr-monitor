@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from gtfs_jp_monitor.canonical import delta1, dumps, round1, write_json, yyyymmdd_to_iso
+from gtfs_fr_pipeline.canonical import delta1, dumps, round1, write_json, yyyymmdd_to_iso
 
 
 class Round1Test(unittest.TestCase):

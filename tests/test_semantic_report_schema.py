@@ -1,8 +1,8 @@
 import copy
 import unittest
 
-from gtfs_jp_monitor.canonical import dumps
-from gtfs_jp_semantic.report_check import check_report
+from gtfs_fr_pipeline.canonical import dumps
+from gtfs_fr_semantic.report_check import check_report
 
 from .schema_support import FIXTURES, HAVE_JSONSCHEMA, errors, load_json, validator
 

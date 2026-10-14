@@ -3,7 +3,7 @@ import unittest
 import zipfile
 from pathlib import Path
 
-from gtfs_jp_monitor.signature import content_signature
+from gtfs_fr_pipeline.signature import content_signature
 
 STOPS = "stop_id,stop_name,stop_lat,stop_lon\nA,Station,35.1,135.1\nB,Hall,35.2,135.2\n"
 

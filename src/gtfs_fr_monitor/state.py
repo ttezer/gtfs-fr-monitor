@@ -10,8 +10,8 @@ import json
 from dataclasses import asdict
 from pathlib import Path
 
-from gtfs_jp_monitor.canonical import write_json_if_changed
-from gtfs_jp_monitor.ids import require_path_id
+from gtfs_fr_pipeline.canonical import write_json_if_changed
+from gtfs_fr_pipeline.ids import require_path_id
 
 from .history import Candidate
 from .selection import Checked, Version

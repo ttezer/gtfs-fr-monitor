@@ -4,8 +4,8 @@ import unittest
 from dataclasses import replace
 from pathlib import Path
 
-from gtfs_jp_monitor.catalog import sync_catalog
-from gtfs_jp_monitor.gtfsdatajp import ApiError, FeedGenerations, FeedRecord, GenerationRecord
+from gtfs_fr_pipeline.catalog import sync_catalog
+from gtfs_fr_pipeline.gtfsdatajp import ApiError, FeedGenerations, FeedRecord, GenerationRecord
 
 from .schema_support import HAVE_JSONSCHEMA, errors, validator
 
@@ -168,7 +168,7 @@ class CatalogSyncTest(unittest.TestCase):
     def test_rejected_list_entries_are_recorded_in_the_catalog(self):
         class Client(FakeClient):
             def list_feeds(self):
-                from gtfs_jp_monitor.gtfsdatajp import Rejected
+                from gtfs_fr_pipeline.gtfsdatajp import Rejected
                 return list(self.feeds), [Rejected("INVALID_FEED_ID", "../x", "y", None, "bad")]
         self.sync(Client([feed_record()], {(ORG, FEED): BASE_GENS}))
         self.assertEqual(read(self.data, "feeds.json")["rejected"], [{"code": "INVALID_FEED_ID", "feed_id": "y", "org_id": "../x"}])

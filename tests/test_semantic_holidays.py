@@ -1,7 +1,7 @@
 import unittest
 from datetime import date
 
-from gtfs_jp_semantic.holidays import HolidayTableOutOfRange, default_table
+from gtfs_fr_semantic.holidays import HolidayTableOutOfRange, default_table
 
 
 class HolidayTableTest(unittest.TestCase):

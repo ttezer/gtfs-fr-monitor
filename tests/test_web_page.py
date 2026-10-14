@@ -5,8 +5,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from gtfs_jp_monitor import webexport
-from gtfs_jp_monitor.diff import build_diff
+from gtfs_fr_pipeline import webexport
+from gtfs_fr_pipeline.diff import build_diff
 
 from .test_diff_builder import gen_doc
 

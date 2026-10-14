@@ -3,9 +3,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from gtfs_jp_monitor.canonical import write_json
-from gtfs_jp_monitor.diff import DiffError, build_diff, consecutive_pairs, sync_feed_diffs
-from gtfs_jp_monitor.store import diff_path, generation_path
+from gtfs_fr_pipeline.canonical import write_json
+from gtfs_fr_pipeline.diff import DiffError, build_diff, consecutive_pairs, sync_feed_diffs
+from gtfs_fr_pipeline.store import diff_path, generation_path
 
 from .schema_support import FIXTURES, HAVE_JSONSCHEMA, errors, load_json, validator
 

@@ -2,7 +2,7 @@ import json
 import unittest
 from datetime import date
 
-from gtfs_jp_semantic.reader import Config
+from gtfs_fr_semantic.reader import Config
 
 from gtfs_fr_monitor.profile import engine_config, holiday_doc, holidays
 

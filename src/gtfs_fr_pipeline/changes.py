@@ -27,12 +27,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
-import gtfs_jp_semantic
-from gtfs_jp_semantic import ENGINE_VERSION
-from gtfs_jp_semantic.holidays import HolidayTable
-from gtfs_jp_semantic.rawdiff import gzip_bytes
-from gtfs_jp_semantic.reader import Config
-from gtfs_jp_semantic.report import build_report
+import gtfs_fr_semantic
+from gtfs_fr_semantic import ENGINE_VERSION
+from gtfs_fr_semantic.holidays import HolidayTable
+from gtfs_fr_semantic.rawdiff import gzip_bytes
+from gtfs_fr_semantic.reader import Config
+from gtfs_fr_semantic.report import build_report
 
 from .canonical import write_json
 from .catalog import load_catalog
@@ -49,7 +49,7 @@ CHILD_MEMORY_BYTES = 8 << 30
 
 def engine_build() -> str:
     """Digest of the semantic engine's code and data files, in a fixed order."""
-    base = Path(gtfs_jp_semantic.__file__).parent
+    base = Path(gtfs_fr_semantic.__file__).parent
     h = hashlib.sha256()
     for path in sorted(p for p in base.rglob("*") if p.is_file() and p.suffix in (".py", ".json")):
         h.update(str(path.relative_to(base)).encode("utf-8") + b"\0" + path.read_bytes() + b"\0")
@@ -298,7 +298,7 @@ def _build_in_child(spec: dict, timeout: float, memory: int) -> str | None:
 
     env = dict(os.environ, PYTHONPATH=os.pathsep.join(filter(None, [str(Path(__file__).resolve().parents[1]), os.environ.get("PYTHONPATH")])))
     try:
-        proc = subprocess.run([sys.executable, "-c", "from gtfs_jp_monitor.changes import _child; _child()"],
+        proc = subprocess.run([sys.executable, "-c", "from gtfs_fr_pipeline.changes import _child; _child()"],
                               input=json.dumps(spec), capture_output=True, text=True, timeout=timeout, env=env, preexec_fn=limit)
     except subprocess.TimeoutExpired:
         return f"Timeout: no report after {timeout:.0f} s"

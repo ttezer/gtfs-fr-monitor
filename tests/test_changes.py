@@ -8,13 +8,13 @@ import unittest
 import zipfile
 from pathlib import Path
 
-from gtfs_jp_monitor.canonical import write_json
-from gtfs_jp_monitor.catalog import load_catalog, sync_catalog
-from gtfs_jp_monitor.changes import find_pending_reports, page_pairs, report_pairs, run_reports, window_uids
-from gtfs_jp_monitor.download import DownloadError, Downloaded
-from gtfs_jp_monitor.pipeline import _catalog_order
-from gtfs_jp_monitor.signature import content_signature
-from gtfs_jp_monitor.store import (analysis_digests, build_feed_index, change_path, content_path, generation_path, list_analyses,
+from gtfs_fr_pipeline.canonical import write_json
+from gtfs_fr_pipeline.catalog import load_catalog, sync_catalog
+from gtfs_fr_pipeline.changes import find_pending_reports, page_pairs, report_pairs, run_reports, window_uids
+from gtfs_fr_pipeline.download import DownloadError, Downloaded
+from gtfs_fr_pipeline.pipeline import _catalog_order
+from gtfs_fr_pipeline.signature import content_signature
+from gtfs_fr_pipeline.store import (analysis_digests, build_feed_index, change_path, content_path, generation_path, list_analyses,
                                  write_feed_index)
 
 from .schema_support import FIXTURES, load_json
@@ -98,7 +98,7 @@ class ReportRunTest(unittest.TestCase):
     def test_another_engine_profile(self):
         import dataclasses
 
-        from gtfs_jp_semantic.reader import Config
+        from gtfs_fr_semantic.reader import Config
         base = Config.load()
         config = dataclasses.replace(base, matching=dict(base.matching, compare_from_publication=True))
         holidays = self.root / "holidays.json"

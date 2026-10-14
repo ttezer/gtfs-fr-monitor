@@ -15,7 +15,7 @@ import json
 import subprocess
 from pathlib import Path
 
-from gtfs_jp_semantic import ENGINE_VERSION
+from gtfs_fr_semantic import ENGINE_VERSION
 
 from .canonical import write_json
 from .catalog import load_catalog

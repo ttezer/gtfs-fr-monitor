@@ -1,5 +1,5 @@
 # Catalog and versions + analysis + semantic reports + GitHub Pages site for transport.data.gouv.fr feeds.
-# The engine and pipeline live in this repository (src/gtfs_jp_semantic, src/gtfs_jp_monitor), run with
+# The engine and pipeline live in this repository (src/gtfs_fr_semantic, src/gtfs_fr_pipeline), run with
 # the French source and profile.
 #
 # Required configuration:
@@ -43,7 +43,7 @@ concurrency:
 
 jobs:
   monitor:
-    runs-on: ubuntu-24.04 # results must come from x86_64-linux, like gtfs-jp-monitor's
+    runs-on: ubuntu-24.04 # results must come from x86_64-linux (analyzer.lock.json production_platform)
     timeout-minutes: 330
     env:
       PYTHONPATH: src
@@ -83,7 +83,7 @@ jobs:
           path: data
 
       - name: Install pinned GTFS Analyzer
-        run: python -m gtfs_jp_monitor install-analyzer --lock analyzer.lock.json --dest "$RUNNER_TEMP/analyzer"
+        run: python -m gtfs_fr_pipeline install-analyzer --lock analyzer.lock.json --dest "$RUNNER_TEMP/analyzer"
 
       - name: Sync catalog and versions
         run: |
@@ -119,7 +119,7 @@ jobs:
         run: |
           args=()
           if kb=$(gh api repos/ttezer/gtfs-fr-data --jq .size); then args+=(--repo-kb "$kb"); fi
-          python -m gtfs_jp_monitor record-storage --data-dir data "${args[@]}"
+          python -m gtfs_fr_pipeline record-storage --data-dir data "${args[@]}"
 
       - name: Commit and push data
         working-directory: data
@@ -143,7 +143,7 @@ jobs:
         run: |
           release=$(python -c 'import json; print(json.load(open("analyzer.lock.json"))["release_tag"])')
           python -m gtfs_fr_monitor site-profile -o "$RUNNER_TEMP/site-profile.json"
-          python -m gtfs_jp_monitor export-web --data-dir data --release-tag "$release" --profile auto \
+          python -m gtfs_fr_pipeline export-web --data-dir data --release-tag "$release" --profile auto \
             --analyzer "$RUNNER_TEMP/analyzer/gtfs-analyzer" --template web/prototype/index.html \
             --site-profile "$RUNNER_TEMP/site-profile.json" --site-url https://ttezer.github.io/gtfs-fr-monitor/ \
             --html _site/index.html --bundle-format gz --stages "$RUNNER_TEMP/stages.txt"
@@ -154,7 +154,7 @@ jobs:
         run: |
           args=()
           if kb=$(gh api repos/ttezer/gtfs-fr-data --jq .size); then args+=(--repo-kb "$kb"); fi
-          python -m gtfs_jp_monitor check-storage --status _site/status.json "${args[@]}" | tee -a "$GITHUB_STEP_SUMMARY"
+          python -m gtfs_fr_pipeline check-storage --status _site/status.json "${args[@]}" | tee -a "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:

@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from gtfs_jp_monitor.ids import (
+from gtfs_fr_pipeline.ids import (
     InvalidIdentifier,
     feed_dir,
     is_path_id,
@@ -10,8 +10,8 @@ from gtfs_jp_monitor.ids import (
     require_uid,
     rid_rank,
 )
-from gtfs_jp_monitor.licenses import normalize_license
-from gtfs_jp_monitor.ordering import GenerationRef, order_generations, rid_order_matches
+from gtfs_fr_pipeline.licenses import normalize_license
+from gtfs_fr_pipeline.ordering import GenerationRef, order_generations, rid_order_matches
 
 
 def uid(n: int) -> str:

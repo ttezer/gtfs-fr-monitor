@@ -7,11 +7,11 @@ import textwrap
 import unittest
 from pathlib import Path
 
-from gtfs_jp_monitor.analyzer import AnalyzerBinary
-from gtfs_jp_monitor.catalog import sync_catalog
-from gtfs_jp_monitor.download import Downloaded, DownloadError
-from gtfs_jp_monitor.pipeline import run_analysis
-from gtfs_jp_monitor.store import UNPINNED_MARKER, StoreError, content_path, generation_path, mark_replaced, replaced_path
+from gtfs_fr_pipeline.analyzer import AnalyzerBinary
+from gtfs_fr_pipeline.catalog import sync_catalog
+from gtfs_fr_pipeline.download import Downloaded, DownloadError
+from gtfs_fr_pipeline.pipeline import run_analysis
+from gtfs_fr_pipeline.store import UNPINNED_MARKER, StoreError, content_path, generation_path, mark_replaced, replaced_path
 
 from .schema_support import FIXTURES, HAVE_JSONSCHEMA, errors, validator
 from .test_catalog import FEED, ORG, FakeClient, feed_record, gen, uid
@@ -133,7 +133,7 @@ class PipelineTest(unittest.TestCase):
         self.assertEqual(ok["evidence"]["exit_code"], 1)
 
     def test_next_release_keeps_the_canonical_key(self):
-        from gtfs_jp_monitor.webexport import build_status
+        from gtfs_fr_pipeline.webexport import build_status
 
         dl = FakeDownloader({uid(1): b"OK1", uid(2): b"OK2", uid(3): b"OK3"})
         self.run_it(dl)

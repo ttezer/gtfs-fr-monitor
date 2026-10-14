@@ -6,8 +6,8 @@ import unittest
 from datetime import date, timedelta
 from pathlib import Path
 
-from gtfs_jp_monitor.catalog import load_catalog, sync_catalog
-from gtfs_jp_monitor.source import FeedRecord
+from gtfs_fr_pipeline.catalog import load_catalog, sync_catalog
+from gtfs_fr_pipeline.source import FeedRecord
 
 from gtfs_fr_monitor.frsource import FrSource, Settings
 from gtfs_fr_monitor.selection import SelectionConfig

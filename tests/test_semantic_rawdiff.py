@@ -5,8 +5,8 @@ import unittest
 import zipfile
 from pathlib import Path
 
-from gtfs_jp_semantic.rawdiff import diff_zips, gzip_bytes
-from gtfs_jp_semantic.reader import Config
+from gtfs_fr_semantic.rawdiff import diff_zips, gzip_bytes
+from gtfs_fr_semantic.reader import Config
 
 CONFIG = Config(bulk_threshold=3, max_rows_per_file=1000, max_uncompressed_bytes=10_000_000)
 

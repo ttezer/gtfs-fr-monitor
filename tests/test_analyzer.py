@@ -9,7 +9,7 @@ import textwrap
 import unittest
 from pathlib import Path
 
-from gtfs_jp_monitor.analyzer import (
+from gtfs_fr_pipeline.analyzer import (
     AnalyzerBinary,
     AnalyzerError,
     Lock,
@@ -159,7 +159,7 @@ class PinningTest(unittest.TestCase):
         self.tmp.cleanup()
 
     def test_marker_pins_only_the_installed_binary(self):
-        from gtfs_jp_monitor.analyzer import pinned_release_for, write_install_marker
+        from gtfs_fr_pipeline.analyzer import pinned_release_for, write_install_marker
 
         binary = self.dir / "gtfs-analyzer"
         binary.write_bytes(b"release build")
@@ -170,7 +170,7 @@ class PinningTest(unittest.TestCase):
         self.assertIsNone(pinned_release_for(binary, self.lock))
 
     def test_marker_for_another_release_does_not_pin(self):
-        from gtfs_jp_monitor.analyzer import pinned_release_for
+        from gtfs_fr_pipeline.analyzer import pinned_release_for
 
         binary = self.dir / "gtfs-analyzer"
         binary.write_bytes(b"x")
@@ -182,7 +182,7 @@ class PinningTest(unittest.TestCase):
     def test_install_release_verifies_and_marks(self):
         from dataclasses import replace
 
-        from gtfs_jp_monitor.analyzer import current_platform, install_release, pinned_release_for
+        from gtfs_fr_pipeline.analyzer import current_platform, install_release, pinned_release_for
 
         os_name, arch = current_platform()
         archive = make_archive(self.dir, [("./gtfs-analyzer", b"BIN", None)])
@@ -275,7 +275,7 @@ class RunValidateTest(unittest.TestCase):
                      "set GTFS_ANALYZER_BIN and GTFS_SAMPLE_ZIP to run against a real analyzer")
 class RealAnalyzerTest(unittest.TestCase):
     def test_real_binary_produces_a_valid_generation_record(self):
-        from gtfs_jp_monitor.generation import AnalyzerIdentity, FeedMeta, GenerationMeta, build_generation
+        from gtfs_fr_pipeline.generation import AnalyzerIdentity, FeedMeta, GenerationMeta, build_generation
 
         from .schema_support import HAVE_JSONSCHEMA, errors, validator
 

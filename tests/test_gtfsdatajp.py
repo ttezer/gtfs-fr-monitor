@@ -1,13 +1,13 @@
 import json
 import unittest
 
-from gtfs_jp_monitor.gtfsdatajp import (
+from gtfs_fr_pipeline.gtfsdatajp import (
     ApiError,
     GtfsDataJpClient,
     NotFound,
     is_api_download_url,
 )
-from gtfs_jp_monitor.ids import InvalidIdentifier
+from gtfs_fr_pipeline.ids import InvalidIdentifier
 
 BASE = "https://api.gtfs-data.jp/v2"
 UID_CUR = "17ab34e1-dcb8-4b2e-9cda-ae2b68f4c444"

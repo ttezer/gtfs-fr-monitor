@@ -16,8 +16,8 @@ import json
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
-from gtfs_jp_semantic.reader import Config
-from gtfs_jp_semantic.report import LINE_STATUS_ORDER, build_report
+from gtfs_fr_semantic.reader import Config
+from gtfs_fr_semantic.report import LINE_STATUS_ORDER, build_report
 
 from .download import download_zip
 from .gtfsdatajp import BASE_URL

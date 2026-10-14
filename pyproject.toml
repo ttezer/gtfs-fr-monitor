@@ -4,7 +4,7 @@ version = "0.0.0"
 description = "Monitoring pipeline for GTFS feeds published on transport.data.gouv.fr"
 requires-python = ">=3.11"
 license = {text = "MIT"}
-# The engine and pipeline (gtfs_jp_semantic, gtfs_jp_monitor) live in this repository: copied from
+# The engine and pipeline (gtfs_fr_semantic, gtfs_fr_pipeline) live in this repository: copied from
 # gtfs-jp-monitor at 0d4d7f2 and developed here on their own (docs/DESIGN.md). No dependencies.
 dependencies = []
 
@@ -20,5 +20,5 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 gtfs_fr_monitor = ["data/*.json"]
-gtfs_jp_semantic = ["default_config.json", "data/*.json"]
-gtfs_jp_monitor = ["classification.json"]
+gtfs_fr_semantic = ["default_config.json", "data/*.json"]
+gtfs_fr_pipeline = ["classification.json"]

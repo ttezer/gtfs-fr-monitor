@@ -1,8 +1,8 @@
 import copy
 import unittest
 
-from gtfs_jp_monitor.canonical import dumps
-from gtfs_jp_monitor.generation import (
+from gtfs_fr_pipeline.canonical import dumps
+from gtfs_fr_pipeline.generation import (
     AnalyzerIdentity,
     AnalyzerOutputError,
     FeedMeta,
@@ -11,7 +11,7 @@ from gtfs_jp_monitor.generation import (
     build_generation,
     fatal_code,
 )
-from gtfs_jp_monitor.ids import InvalidIdentifier
+from gtfs_fr_pipeline.ids import InvalidIdentifier
 
 from .schema_support import FIXTURES, HAVE_JSONSCHEMA, errors, load_json, validator
 

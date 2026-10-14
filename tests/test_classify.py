@@ -4,7 +4,7 @@ import re
 import unittest
 from pathlib import Path
 
-from gtfs_jp_monitor.classify import MEANINGFUL, TECHNICAL, classify_report, load_rules
+from gtfs_fr_pipeline.classify import MEANINGFUL, TECHNICAL, classify_report, load_rules
 
 from .schema_support import FIXTURES, load_json
 
@@ -60,7 +60,7 @@ class RulesCoverTheReportTest(unittest.TestCase):
             self.assertEqual(set(summary[group]["required"]) - {"unchanged"}, set(RULES["summary"][group]))
 
     def test_calendar_kinds_of_the_engine(self):
-        source = (ROOT / "src" / "gtfs_jp_semantic" / "report.py").read_text(encoding="utf-8")
+        source = (ROOT / "src" / "gtfs_fr_semantic" / "report.py").read_text(encoding="utf-8")
         emitted = set(re.findall(r'other\["(calendar_[a-z_]+)"\]', source)) | {"service_dates_changed"}
         kinds = RULES["kinds"]["calendar_exceptions"]
         self.assertEqual(emitted - set(kinds["passenger_facing"]) - set(kinds["technical"]), set())

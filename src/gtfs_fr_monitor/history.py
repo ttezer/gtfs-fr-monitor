@@ -16,8 +16,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from gtfs_jp_monitor.ids import is_uid
-from gtfs_jp_monitor.source import Rejected
+from gtfs_fr_pipeline.ids import is_uid
+from gtfs_fr_pipeline.source import Rejected
 
 from .tdg import is_history_url
 

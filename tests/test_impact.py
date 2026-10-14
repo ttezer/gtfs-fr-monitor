@@ -1,8 +1,8 @@
 import copy
 import unittest
 
-from gtfs_jp_monitor.classify import load_rules
-from gtfs_jp_monitor.impact import assess, event_class
+from gtfs_fr_pipeline.classify import load_rules
+from gtfs_fr_pipeline.impact import assess, event_class
 
 from .test_semantic_events import build
 from .test_semantic_report import NEW, OLD

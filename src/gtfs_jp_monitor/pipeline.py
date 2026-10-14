@@ -1,0 +1,382 @@
+"""Incremental analysis run (data-model §8, §9).
+
+catalog -> pending (uid, analysis_key) -> download -> content signature + analyze -> generation record
+        -> content signatures of equivalence candidates -> feed.json -> consecutive diffs -> run record
+
+A generation counts as done once a record exists for the analysis key, so an interrupted
+run resumes where it stopped (data-model §8). Transient download failures write nothing and
+are retried next run; analyzer-side failures are stored as FATAL records.
+"""
+
+from __future__ import annotations
+
+import datetime as _dt
+import json
+import secrets
+import tempfile
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Callable
+
+from .analyzer import AnalyzerBinary, run_validate
+from .canonical import write_json, write_json_if_changed
+from .catalog import load_catalog
+from .diff import sync_feed_diffs
+from .download import DownloadError, download_zip
+from .generation import (
+    AnalyzerIdentity,
+    AnalyzerOutputError,
+    FeedMeta,
+    GenerationMeta,
+    build_fatal,
+    build_generation,
+)
+from .ids import is_path_id
+from .ordering import GenerationRef, order_generations
+from .signature import content_signature
+from .store import (
+    analysis_digests,
+    analysis_key,
+    build_feed_index,
+    check_writable,
+    content_path,
+    generation_path,
+    list_analyses,
+    load_content,
+    load_feed_index,
+    mark_replaced,
+    replaced_path,
+    summary_digest,
+    write_feed_index,
+)
+
+RUN_SCHEMA = "gtfs-jp-monitor-run/1"
+# Publications analysed before content signatures existed get one when they may be equivalent
+# (same analysis summary as a neighbour); at most this many downloads per run.
+SIGNATURE_LIMIT = 200
+# Publications the page shows get field counts (data-model §15) when their record predates them;
+# at most this many downloads per run.
+FIELDS_LIMIT = 200
+
+FeedKey = tuple[str, str]
+Downloader = Callable[[str, Path], object]
+
+
+@dataclass
+class Pending:
+    org_id: str
+    feed_id: str
+    depth: int  # 0 = newest generation of the feed
+    entry: dict  # catalog generation entry
+
+
+@dataclass
+class RunReport:
+    run_id: str
+    counts: dict = field(default_factory=dict)
+    items: list[dict] = field(default_factory=list)
+    warnings: list[dict] = field(default_factory=list)
+    changed_files: list[str] = field(default_factory=list)
+    run_file: str | None = None
+
+
+def _utc_now() -> _dt.datetime:
+    return _dt.datetime.now(_dt.timezone.utc).replace(microsecond=0)
+
+
+def _iso(ts: _dt.datetime) -> str:
+    return ts.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def find_pending(
+    catalog_gens: dict[FeedKey, dict[str, dict]],
+    stored: dict[FeedKey, dict[str, dict[str, str]]],
+    key: str,
+    only: set[FeedKey] | None = None,
+) -> list[Pending]:
+    """Generations present in the API, orderable, and without a record for `key`.
+
+    Newest first, round-robin across feeds: every feed's newest generation comes before any
+    feed's second newest, so a partial backfill still covers the current period everywhere.
+    """
+    pending: list[Pending] = []
+    for fk in sorted(catalog_gens):
+        if only is not None and fk not in only:
+            continue
+        entries = catalog_gens[fk]
+        present = [e for e in entries.values() if e.get("present", True)]
+        ordered, _unknown = order_generations(
+            GenerationRef(e["uid"], e["from_date"], e["published_at"]) for e in present
+        )
+        done = stored.get(fk, {})
+        for depth, ref in enumerate(reversed(ordered)):
+            if key not in done.get(ref.uid, {}):
+                pending.append(Pending(fk[0], fk[1], depth, entries[ref.uid]))
+    pending.sort(key=lambda p: (p.depth, p.org_id, p.feed_id))
+    return pending
+
+
+def _previous_sha(root: Path, org_id: str, feed_id: str, uid: str, analyses: dict[str, str]) -> str | None:
+    for key in sorted(analyses):
+        path = generation_path(root, org_id, feed_id, uid, key)
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        return doc["generation"]["sha256"]
+    return None
+
+
+def run_analysis(
+    data_dir: Path,
+    binary: AnalyzerBinary,
+    profile: str,
+    trigger: str = "local",
+    limit: int | None = None,
+    only: set[FeedKey] | None = None,
+    timeout: float = 600,
+    downloader: Callable[..., object] = download_zip,
+    now: Callable[[], _dt.datetime] = _utc_now,
+    extra_warnings: list[dict] | None = None,
+    signature_limit: int = SIGNATURE_LIMIT,
+    fields_limit: int = FIELDS_LIMIT,
+    canonical_key: str | None = None,
+    areas: tuple | None = None,
+) -> RunReport:
+    """canonical_key: the key the site uses, kept as the canonical analysis in feed.json while a
+    newer release is filled in the background (data-model §8.1); defaults to this run's key.
+    areas: another source's stop areas for the content signature's outside count (default Japan)."""
+    root = Path(data_dir)
+    check_writable(root, binary.is_pinned)
+    release_tag = binary.pinned_release or f"v{binary.version}"
+    key = analysis_key(release_tag, profile)
+    identity = AnalyzerIdentity(binary.version, release_tag, binary.sha256, binary.os, binary.arch, profile)
+
+    started = now()
+    report = RunReport(run_id=f"{started.strftime('%Y%m%dT%H%M%SZ')}-{secrets.token_hex(4)}")
+    report.warnings.extend(extra_warnings or [])  # events from the catalog sync of the same run
+    catalog_feeds, catalog_gens = load_catalog(root)
+    stored = {fk: list_analyses(root, *fk) for fk in catalog_gens}
+    pending = find_pending(catalog_gens, stored, key, only)
+    # Publications whose file was replaced at the source come first (data-model §3.3).
+    replaced = [Pending(fk[0], fk[1], -1, catalog_gens[fk][u]) for fk in sorted(catalog_gens)
+                if stored.get(fk) and all(is_path_id(x) for x in fk) and (only is None or fk in only)
+                for u in replaced_uids(root, fk, catalog_gens[fk], stored[fk], key)]
+    pending = replaced + pending
+    selected = pending if limit is None else pending[:limit]
+    counts = {"feeds_scanned": len(catalog_gens), "generations_seen": sum(len(v) for v in catalog_gens.values()),
+              "new_generations": len(pending) - len(replaced), "analyzed": 0, "skipped": len(pending) - len(selected),
+              "failed": 0}
+    if replaced:
+        counts["replaced"] = len(replaced)
+
+    source_changed: dict[FeedKey, set[str]] = {}
+    with tempfile.TemporaryDirectory(prefix="gtfs-jp-monitor-") as tmp:
+        work = Path(tmp)
+        for item in selected:
+            fk = (item.org_id, item.feed_id)
+            entry = item.entry
+            uid = entry["uid"]
+            feed_row = catalog_feeds.get(fk, {})
+            record = {"org_id": item.org_id, "feed_id": item.feed_id, "uid": uid,
+                      "rid_observed": entry["rid_observed"], "action": "failed", "validation_status": None,
+                      "duration_ms": 0, "error_code": None, "message": None}
+            zip_path = work / f"{uid}.zip"
+            try:
+                try:
+                    downloaded = downloader(entry["gtfs_url"], zip_path)
+                except DownloadError as err:
+                    record.update(error_code=err.code, message=err.detail[:2000])
+                    counts["failed"] += 1
+                    if err.code == "SOURCE_UNAVAILABLE":
+                        report.warnings.append({"code": "SOURCE_UNAVAILABLE", "org_id": item.org_id,
+                                                "feed_id": item.feed_id, "uid": uid, "detail": err.detail})
+                    report.items.append(record)
+                    continue
+
+                prev_sha = _previous_sha(root, item.org_id, item.feed_id, uid, stored.get(fk, {}).get(uid, {}))
+                if prev_sha is not None and prev_sha != downloaded.sha256:
+                    source_changed.setdefault(fk, set()).add(uid)
+                    report.warnings.append({"code": "SOURCE_CHANGED", "org_id": item.org_id, "feed_id": item.feed_id,
+                                            "uid": uid, "detail": "ZIP checksum differs from the stored analysis"})
+
+                if _write_signature(root, item.org_id, item.feed_id, uid, zip_path, downloaded.sha256, areas):
+                    report.changed_files.append(str(content_path(root, item.org_id, item.feed_id, uid).relative_to(root)))
+
+                # Missing source values stay null; nothing is guessed (data-model §5).
+                meta = GenerationMeta(uid, downloaded.sha256, entry["published_at"], entry["from_date"],
+                                      entry["to_date"], feed_row.get("license", {}).get("raw", ""))
+                feed_meta = FeedMeta(item.org_id, item.feed_id, feed_row.get("feed_name", ""))
+                run = run_validate(binary, zip_path, entry["from_date"], profile, work, timeout=timeout)
+                record["duration_ms"] = run.duration_ms
+                if run.evidence is not None:
+                    record["evidence"] = dict(run.evidence, exit_code=run.exit_code)
+                if run.report is None:
+                    doc = build_fatal(feed_meta, meta, identity, run.error_code or "ANALYZER_ERROR")
+                    record["message"] = run.stderr_tail[-2000:] or None
+                else:
+                    try:
+                        doc = build_generation(run.report, feed_meta, meta, identity)
+                    except AnalyzerOutputError as err:
+                        doc = build_fatal(feed_meta, meta, identity, "INVALID_REPORT")
+                        record["message"] = str(err)[:2000]
+                path = generation_path(root, item.org_id, item.feed_id, uid, key)
+                write_json(path, doc)
+                report.changed_files.append(str(path.relative_to(root)))
+                if prev_sha is not None and prev_sha != downloaded.sha256:  # reports describe the old file
+                    report.changed_files.extend(_drop_reports(root, *fk, uid))
+                marker = replaced_path(root, *fk, uid)
+                if marker.is_file():
+                    marker.unlink()
+                    report.changed_files.append(str(marker.relative_to(root)))
+                stored.setdefault(fk, {}).setdefault(uid, {})[key] = doc["validation_status"]
+                record.update(action="analyzed", validation_status=doc["validation_status"],
+                              error_code=doc["fatal"]["code"] if doc["fatal"] else None)
+                counts["analyzed"] += 1
+                report.items.append(record)
+            finally:
+                zip_path.unlink(missing_ok=True)
+
+        feeds = [fk for fk in sorted(catalog_gens) if stored.get(fk) and all(is_path_id(x) for x in fk)]
+        candidates = [(fk, u) for fk in feeds for u in _signature_candidates(root, fk, catalog_gens[fk], stored[fk], key)]
+        candidates = candidates[:signature_limit]
+        seen = set(candidates)
+        extra = [(fk, u) for fk in feeds for u in _field_candidates(root, fk, catalog_gens[fk], stored[fk], key)]
+        candidates += [c for c in extra if c not in seen][:fields_limit]
+        for fk, uid in candidates:
+            zip_path = work / f"{uid}.zip"
+            try:
+                try:
+                    downloaded = downloader(catalog_gens[fk][uid]["gtfs_url"], zip_path)
+                except DownloadError:
+                    counts["signature_failed"] = counts.get("signature_failed", 0) + 1  # stays not equivalent
+                    continue
+                analysed = json.loads(generation_path(root, *fk, uid, key).read_text(encoding="utf-8"))
+                if analysed["generation"]["sha256"] != downloaded.sha256:  # replaced at the source: analyse again
+                    counts["signature_failed"] = counts.get("signature_failed", 0) + 1
+                    report.changed_files.append(str(mark_replaced(root, *fk, uid, downloaded.sha256).relative_to(root)))
+                    continue
+                if _write_signature(root, *fk, uid, zip_path, downloaded.sha256, areas):
+                    report.changed_files.append(str(content_path(root, *fk, uid).relative_to(root)))
+                    counts["signed"] = counts.get("signed", 0) + 1
+            finally:
+                zip_path.unlink(missing_ok=True)
+
+    for fk in sorted(catalog_gens):
+        if fk not in catalog_feeds or not all(is_path_id(x) for x in fk):
+            continue
+        ordered_entries = _catalog_order(catalog_gens[fk])
+        doc = build_feed_index(catalog_feeds[fk], ordered_entries, stored.get(fk, {}), canonical_key or key,
+                               previous=load_feed_index(root, *fk), source_changed=source_changed.get(fk, set()),
+                               digests=analysis_digests(root, *fk) if stored.get(fk) else None)
+        if write_feed_index(root, doc):
+            report.changed_files.append(f"feeds/{fk[0]}/{fk[1]}/feed.json")
+        diffs = sync_feed_diffs(root, doc, key)
+        report.changed_files.extend(diffs.written + diffs.deleted)
+        for old_uid, new_uid, reason in diffs.refused:
+            report.warnings.append({"code": "DIFF_REFUSED", "org_id": fk[0], "feed_id": fk[1], "uid": new_uid,
+                                    "detail": f"{old_uid} -> {new_uid}: {reason}"[:2000]})
+
+    report.counts = counts
+    if report.changed_files or report.warnings or counts["failed"]:
+        finished = now()
+        run_doc = {
+            "schema": RUN_SCHEMA, "run_id": report.run_id, "started_at": _iso(started), "finished_at": _iso(finished),
+            "trigger": trigger,
+            "analyzer": {"release_tag": release_tag, "binary_sha256": binary.sha256,
+                         "platform": {"os": binary.os, "arch": binary.arch}},
+            "counts": counts, "items": report.items, "warnings": report.warnings,
+        }
+        run_path = root / "runs" / started.strftime("%Y") / f"{report.run_id}.json"
+        write_json_if_changed(run_path, run_doc)
+        report.run_file = str(run_path.relative_to(root))
+    return report
+
+
+def _write_signature(root: Path, org_id: str, feed_id: str, uid: str, zip_path: Path, sha256: str, areas=None) -> bool:
+    """Write the content signature unless one exists for these ZIP bytes."""
+    current = load_content(root, org_id, feed_id, uid)
+    if current is not None and current.get("zip_sha256") == sha256 and "fields" in current:
+        return False
+    write_json(content_path(root, org_id, feed_id, uid),
+               content_signature(zip_path, sha256, areas) if areas else content_signature(zip_path, sha256))
+    return True
+
+
+def _signature_candidates(root: Path, fk: FeedKey, entries: dict[str, dict], analyses: dict[str, dict[str, str]],
+                          key: str) -> list[str]:
+    """Uids whose analysis summary for `key` equals that of the previous analysed publication, or
+    of the next one, and that have no content signature for the analysed ZIP (newest first)."""
+    chain: list[tuple[str, str | None, str]] = []  # (uid, summary digest or None when FATAL, analysed sha)
+    for entry in _catalog_order(entries):
+        uid = entry["uid"]
+        if key not in analyses.get(uid, {}) or not entry.get("from_date"):
+            continue
+        doc = json.loads(generation_path(root, *fk, uid, key).read_text(encoding="utf-8"))
+        digest = summary_digest(doc) if doc["validation_status"] != "FATAL" else None
+        chain.append((uid, digest, doc["generation"]["sha256"]))
+    wanted: list[str] = []
+    for i, (uid, digest, sha) in enumerate(chain):
+        if digest is None:
+            continue
+        neighbours = [chain[j][1] for j in (i - 1, i + 1) if 0 <= j < len(chain)]
+        content = load_content(root, *fk, uid)
+        if digest in neighbours and (content is None or content.get("zip_sha256") != sha) and entries[uid].get("present", True):
+            wanted.append(uid)
+    return list(reversed(wanted))
+
+
+def _field_candidates(root: Path, fk: FeedKey, entries: dict[str, dict], analyses: dict[str, dict[str, str]],
+                      key: str) -> list[str]:
+    """Publications the page shows (by the feed index of the previous run) whose content record has
+    no field counts yet."""
+    from .changes import window_uids
+
+    index = load_feed_index(root, *fk)
+    if index is None:
+        return []
+    out = []
+    for uid in sorted(window_uids(index, key, entries)):
+        content = load_content(root, *fk, uid)
+        if key in analyses.get(uid, {}) and entries.get(uid, {}).get("present", True) and (content is None or "fields" not in content):
+            out.append(uid)
+    return out
+
+
+REPLACED_FIELDS = ("published_at", "from_date", "to_date")
+
+
+def replaced_uids(root: Path, fk: FeedKey, entries: dict[str, dict], analyses: dict[str, dict[str, str]],
+                  key: str) -> list[str]:
+    """Analysed publications whose file was replaced at the source (data-model §3.3): the catalog
+    gives other dates than the analysis recorded (the source renews them with the file), or a
+    download saw other bytes (source-changed.json). Publications no longer listed are left alone."""
+    out = []
+    for uid, keys in sorted(analyses.items()):
+        entry = entries.get(uid)
+        if key not in keys or entry is None or not entry.get("present", True) or not entry.get("from_date"):
+            continue
+        if replaced_path(root, *fk, uid).is_file():
+            out.append(uid)
+            continue
+        gen = json.loads(generation_path(root, *fk, uid, key).read_text(encoding="utf-8"))["generation"]
+        if any(gen.get(f) != entry.get(f) for f in REPLACED_FIELDS):
+            out.append(uid)
+    return out
+
+
+def _drop_reports(root: Path, org_id: str, feed_id: str, uid: str) -> list[str]:
+    """Remove the semantic reports and report markers of every pair with `uid`; the report step
+    builds those the page needs again. Returns the removed paths."""
+    base = root / "feeds" / org_id / feed_id / "changes"
+    gone = []
+    for path in sorted(base.glob(f"*/*{uid}*")) if base.is_dir() else []:
+        if path.name.endswith((".report.json.gz", ".error.json")) and uid in path.name.split(".")[0].split("__"):
+            path.unlink()
+            gone.append(str(path.relative_to(root)))
+    return gone
+
+
+def _catalog_order(by_uid: dict[str, dict]) -> list[dict]:
+    ordered, unknown = order_generations(
+        GenerationRef(e["uid"], e["from_date"], e["published_at"]) for e in by_uid.values()
+    )
+    return [by_uid[r.uid] for r in ordered + unknown]
+

@@ -1,7 +1,9 @@
 # GTFS-FR monitor — tasarım (3. adım)
 
-Ortak kod `gtfs-jp-monitor`'den gelir (kaynak arayüzü `source.CatalogSource`, 64e45f0;
-`matching.compare_from_publication`, b186123). Bu repo yalnız Fransa'ya özgü olanı tutar.
+Motor ve işlem hattı (`src/gtfs_jp_semantic`, `src/gtfs_jp_monitor`, `web/prototype/index.html`, `schemas/`,
+testleri ve `docs/data-model.md`, `docs/semantic/`) bu repoda: 2026-10-14'te `gtfs-jp-monitor`'ün 0d4d7f2 commit'inden
+kopyalandı ve o tarihten sonra burada bağımsız geliştirilir. İki proje birbirini etkilemez; bir düzeltme gerekirse
+ayrıca taşınır. Paket adları şimdilik aynı kaldı. Fransa'ya özgü kod `src/gtfs_fr_monitor`'da.
 
 ## Feed kimliği
 
@@ -89,10 +91,9 @@ uyarı yok; ikinci çalışma 7 s, 1 indirme, hiçbir dosya yazılmadı. STAR ve
   `.github/workflows/gtfs-fr-monitor.yml` (JP checkout `jp/` sabit commit). JP 37fc73a (durak alanları,
   kural başlığı dilleri), 34926c5 (geçmiş sütunları gizleme). Yerelde uçtan uca: 4 feed, 8 analiz, 7 rapor,
   FR/EN/TR Atom, sayfa Fransızca ve eksiksiz.
-  Yayın için: JP ve FR push; gtfs-fr-data'da ilk commit; `DATA_REPO_TOKEN` secret'ı; Pages kaynağı "GitHub Actions";
+  Yayın için: FR push; gtfs-fr-data'da ilk commit; `DATA_REPO_TOKEN` secret'ı; Pages kaynağı "GitHub Actions";
   ilk koşular elle (indirme bütçesi ile geçmiş doldurma birkaç koşuya yayılır).
 
-## Ön koşul
+## Yerel çalıştırma
 
-`gtfs-jp-monitor`'deki 64e45f0 ve b186123 push edilmeden FR workflow'u ortak kodu GitHub'dan kuramaz.
-Yerel geliştirme `../GTFS-JP/src` üzerinden yapılır.
+`PYTHONPATH=src` (ve ağ istekleri için macOS'ta `SSL_CERT_FILE=/etc/ssl/cert.pem`); başka repo gerekmez.

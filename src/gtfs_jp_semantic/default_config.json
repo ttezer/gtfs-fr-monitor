@@ -1,0 +1,69 @@
+{
+  "bulk_threshold": 100000,
+  "matching": {
+    "accept_confidence": 0.5,
+    "cross_line_max_shift_min": 10,
+    "cross_line_min_containment": 0.8,
+    "day_group_min_agreement": 0.8,
+    "direction_align": true,
+    "first_last_min_shift": 10,
+    "line_family_patterns": [
+      "^[\\[【「]([^\\]】」]+線)[\\]】」]"
+    ],
+    "line_max_component": 6,
+    "line_min_overlap": 0.6,
+    "line_name_pair_min_similarity": 0.6,
+    "line_name_strip_patterns": [
+      "^[A-Z][0-9]*(?=[\\u4e00-\\u9fff])"
+    ],
+    "pattern_min_similarity": 0.4,
+    "stop_group_radius_m": 200,
+    "stop_moved_min_m": 20,
+    "stop_name_min_similarity": 0.6,
+    "stop_name_radius_m": 500,
+    "stop_name_strip_patterns": [
+      "[0-9]+(番線|番のりば|番乗り場|番乗場|番|のりば|乗り場|乗場)$",
+      "(?<=[^A-Za-z0-9])[A-Za-z]$"
+    ],
+    "stop_name_suffixes": [
+      "（上り）",
+      "（下り）",
+      "（上）",
+      "（下）",
+      "上り",
+      "下り",
+      "のりば",
+      "乗り場",
+      "乗場",
+      "バス停",
+      "（往路）",
+      "（復路）",
+      "（往）",
+      "（復）"
+    ],
+    "stop_near_radius_m": 150,
+    "stop_same_id_max_m": 300,
+    "trip_max_cost": 0.8,
+    "trip_max_shift_min": 45
+  },
+  "max_rows_per_file": 5000000,
+  "max_uncompressed_bytes": 2147483648,
+  "min_overlap_days": 14,
+  "report": {
+    "date_change_trips_max": 30,
+    "date_changes_max": 100,
+    "dwell": true,
+    "events": true,
+    "geometry_cap_m": 500,
+    "geometry_diverge_m": 50,
+    "geometry_sample_m": 20,
+    "geometry_tolerance_m": 10,
+    "irregular_max": 50,
+    "irregular_spans_max": 20,
+    "other_details_max": 200,
+    "pattern_shifts": true,
+    "renumbering": true
+  },
+  "schema": "gtfs-jp-semantic-config/1",
+  "special_max_days": 8
+}

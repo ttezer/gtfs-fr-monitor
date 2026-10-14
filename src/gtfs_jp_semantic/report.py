@@ -1,0 +1,894 @@
+"""Planner report for one pair of publications (docs/semantic/03-report.md).
+
+Joins the raw diff, service days, place, line and trip matches into one
+gtfs-jp-semantic-report/1 document, and accounts for every raw difference.
+"""
+
+from __future__ import annotations
+
+import collections
+import statistics
+from dataclasses import dataclass
+from datetime import date, datetime
+from difflib import SequenceMatcher
+from pathlib import Path
+
+from . import ENGINE_VERSION
+from .accounting import Evidence, classify
+from .events import Facts, build_events, build_mappings
+from .holidays import HolidayTable, default_table
+from .lines import Line, LineMatch, build_lines, match_lines
+from .places import PlaceMatch, build_places, match_places, place_of_stop
+from .geometry import compare as compare_geometry, encode, length_m, load_shapes, simplify
+from .rawdiff import diff_feeds
+from .reader import Config, Feed, read_feed
+from .report_check import check_report
+from .service import build_calendar, choose_comparison, day_type_order, irregular_services, parse_yyyymmdd
+from .trips import (Trip, TripPair, align_directions, build_trips, dominant_pattern, match_moved_trips, match_trips,
+                    pattern_edits, shift_edits)
+
+SCHEMA = "gtfs-jp-semantic-report/1"
+JP_FILES = frozenset({"agency_jp.txt", "office_jp.txt", "routes_jp.txt", "pattern_jp.txt"})
+MAX_MINUTES = 2880
+LINE_STATUS_ORDER = ("added", "discontinued", "renamed", "merged", "split", "restructured", "changed", "unchanged")
+
+
+class ReportInconsistent(ValueError):
+    """The assembled report failed check_report; it is never written."""
+
+
+def _date(value: str | None) -> date | None:
+    return date.fromisoformat(value) if value else None
+
+
+def _band(minutes: int) -> str:
+    h = minutes // 60
+    return f"{h:02d}-{h + 1:02d}"
+
+
+def _time(t: int | None) -> int | None:
+    return t if t is not None and 0 <= t <= MAX_MINUTES else None
+
+
+@dataclass
+class _Group:
+    """One report line: a line match with the trips of its lines."""
+
+    key: str
+    match: LineMatch
+    old: list[Line]
+    new: list[Line]
+
+
+class _PlaceIndex:
+    """Report places, referenced by trip place ids (new-side ids, or "old:<id>" for unmatched old places)."""
+
+    def __init__(self, matches: list[PlaceMatch]) -> None:
+        self.by_new = {m.new.place_id: m for m in matches if m.new}
+        self.by_old = {m.old.place_id: m for m in matches if m.old and not m.new}
+        self.needed: set[str] = {self.ref(m) for m in matches if m.status != "unchanged"}
+        self.index: dict[str, int] = {}
+
+    @staticmethod
+    def ref(m: PlaceMatch) -> str:
+        return m.new.place_id if m.new else "old:" + m.old.place_id
+
+    def lookup(self, ref: str) -> PlaceMatch:
+        return self.by_old[ref[4:]] if ref.startswith("old:") else self.by_new[ref]
+
+    def use(self, refs) -> None:
+        self.needed.update(refs)
+
+    def freeze(self) -> list[str]:
+        order = sorted(self.needed, key=lambda r: (r.startswith("old:"), r))
+        self.index = {r: i for i, r in enumerate(order)}
+        return order
+
+    def __getitem__(self, ref: str) -> int:
+        return self.index[ref]
+
+
+def _stop(p) -> dict | None:
+    if p is None:
+        return None
+    return {"stop_id": p.place_id, "name": p.name, "lat": p.lat, "lon": p.lon}
+
+
+def _groups(line_matches: list[LineMatch], old: dict[str, Line], new: dict[str, Line]) -> list[_Group]:
+    groups, seen = [], set()
+    for m in line_matches:
+        key = "+".join(m.new) if m.new else "+".join(m.old)
+        base, n = key, 2
+        while key in seen:  # a discontinued old name equal to another group's key
+            key, n = f"{base}~{n}", n + 1
+        seen.add(key)
+        groups.append(_Group(key, m, [old[k] for k in m.old], [new[k] for k in m.new]))
+    return groups
+
+
+def _median_dwell(trips: list[Trip]) -> float | None:
+    """Median over trips of the minutes spent standing at stops (departure minus arrival, summed);
+    None when no trip gives both times anywhere."""
+    values = [t.dwell for t in trips if t.dwell is not None]
+    return float(statistics.median(values)) if values else None
+
+
+def _renumbered(place_matches: list, groups: list[_Group], combos: dict) -> dict:
+    """Identifiers that changed while what they name stayed (data-model §13 id churn): unchanged places
+    whose stop_ids changed, lines kept under their name whose route_ids changed, and trips paired
+    exactly (same places and times) under another trip_id. A renamed line or place is a change, not
+    renumbering."""
+    stops = sum(1 for m in place_matches if m.status == "unchanged" and set(m.old.members) != set(m.new.members))
+    routes = sum(1 for g in groups if g.match.relation == "same"
+                 and {r for l in g.old for r in l.route_ids} != {r for l in g.new for r in l.route_ids})
+    trips = {a[p.old].trip_id for a, b, pairs in combos.values() for p in pairs
+             if p.kind == "exact" and a[p.old].trip_id != b[p.new].trip_id}
+    return {"stops": stops, "lines": routes, "trips": len(trips)}
+
+
+def _side(lines: list[Line]) -> dict | None:
+    if not lines:
+        return None
+    names = sorted({n for l in lines for n in l.names} or {l.key for l in lines})
+    return {"names": names, "route_ids": sorted({r for l in lines for r in l.route_ids})}
+
+
+def _rows_for(patterns: list[tuple[str, ...]]) -> tuple[list[str], dict[tuple[str, ...], list[int]]]:
+    """Merge place sequences into one row order. Returns rows and, per pattern, its row positions."""
+    rows: list[int] = []  # row ids; insertion keeps earlier mappings valid
+    row_place: dict[int, str] = {}
+    mapping: dict[tuple[str, ...], list[int]] = {}
+    for p in patterns:
+        current = [row_place[r] for r in rows]
+        merged: list[int] = []
+        placed: list[int] = []
+        for tag, i1, i2, j1, j2 in SequenceMatcher(None, current, p, autojunk=False).get_opcodes():
+            if tag == "equal":
+                merged += rows[i1:i2]
+                placed += rows[i1:i2]
+                continue
+            merged += rows[i1:i2]  # rows the pattern does not visit stay in place
+            new_rows = list(range(len(row_place), len(row_place) + j2 - j1))
+            row_place.update(zip(new_rows, p[j1:j2]))
+            merged += new_rows
+            placed += new_rows
+        rows = merged
+        mapping[p] = placed
+    position = {r: i for i, r in enumerate(rows)}
+    return [row_place[r] for r in rows], {p: [position[r] for r in rs] for p, rs in mapping.items()}
+
+
+def _timetable(trips: list[Trip], places: _PlaceIndex) -> dict | None:
+    if not trips:
+        return None
+    counts = collections.Counter(t.places for t in trips)
+    patterns = sorted(counts, key=lambda p: (-counts[p], -len(p), p))
+    rows, mapping = _rows_for(patterns)
+    places.use(rows)
+    table_trips = []
+    for t in trips:
+        times: list[int | None] = [None] * len(rows)
+        for pos, value in zip(mapping[t.places], t.times):
+            times[pos] = _time(value)
+        table_trips.append({"trip_id": t.trip_id, "times": times})
+    return {"places": rows, "trips": table_trips}
+
+
+def _column_pairs(table, a: str, b: str) -> list[tuple[str, str]]:
+    if table is None or table.status != "ok" or a not in table.header or b not in table.header:
+        return []
+    i, j = table.header.index(a), table.header.index(b)
+    return [(r[i], r[j]) for r in table.rows]
+
+
+def _irregular(cal, tables: dict, config: Config) -> list[dict]:
+    """Irregular services of one publication, with their dates and trips (03-report.md §2)."""
+    trips = collections.Counter(sid for _, sid in _column_pairs(tables.get("trips.txt"), "trip_id", "service_id"))
+    return [{"service_id": x.service_id, "dates": _spans(list(x.dates))[:config.report["irregular_spans_max"]],
+             "date_count": len(x.dates), "trips": trips[x.service_id], "mode": x.mode}
+            for x in irregular_services(cal, config.special_max_days)][:config.report["irregular_max"]]
+
+
+def _sort_trips(trips: list[Trip]) -> list[Trip]:
+    return sorted(trips, key=lambda t: (t.first_departure if t.first_departure is not None else 10**6, t.trip_id))
+
+
+def _spans(dates: list[date]) -> list[dict]:
+    """Consecutive dates as {start, end} spans."""
+    spans: list[list[date]] = []
+    for d in sorted(dates):
+        if spans and (d - spans[-1][1]).days == 1:
+            spans[-1][1] = d
+        else:
+            spans.append([d, d])
+    return [{"start": a.isoformat(), "end": b.isoformat()} for a, b in spans]
+
+
+def _date_changes(old_cal, new_cal, typical: dict, type_of, trips_of, max_groups: int, max_trips: int,
+                  max_shift: int, after: date | None = None) -> tuple[list[dict], set[str], int]:
+    """Dates both publications cover whose change differs from the regular one (03-report.md §2).
+
+    A trip is its line, place sequence and times, so a changed middle time counts. For each
+    shared date, old -> new is compared with the change of the typical day it follows (see
+    base; typical: day type -> (old date, new date)), which the line blocks already show; only
+    the remainder is reported, dates with the same remainder forming one group. Returns groups,
+    the trip ids that ran on any shared date (either side), and the number of such dates.
+    after: only shared dates on or after it (see service.choose_comparison).
+    trips_of(side, services) -> list[Trip] with line keys already mapped to report lines.
+    """
+    cache: dict = {}
+
+    def day(side: str, services: frozenset) -> tuple[collections.Counter, list[Trip]]:
+        if (side, services) not in cache:
+            trips = trips_of(side, services)
+            cache[(side, services)] = (collections.Counter((t.line, t.places, t.times) for t in trips), trips)
+        return cache[(side, services)]
+
+    def change(a: collections.Counter, b: collections.Counter) -> collections.Counter:
+        """Signed old -> new change: positive added, negative removed."""
+        c = collections.Counter(b)
+        c.subtract(a)
+        return collections.Counter({k: v for k, v in c.items() if v})
+
+    # The regular change of each typical day, with the services it runs on each side.
+    regular: dict[str, collections.Counter] = {}
+    bases: list[tuple[frozenset, frozenset, collections.Counter]] = []
+    for dt, (od, nd) in typical.items():
+        if od in old_cal.days and nd in new_cal.days:
+            regular[dt] = change(day("old", old_cal.days[od])[0], day("new", new_cal.days[nd])[0])
+            bases.append((old_cal.days[od], new_cal.days[nd], regular[dt]))
+        else:
+            regular[dt] = collections.Counter()
+
+    def base(d: date) -> collections.Counter:
+        """The typical day whose services this date also runs (a holiday on the weekday
+        timetable uses the weekday change); otherwise the typical day of its day type."""
+        fits = [b for b in bases if b[0] <= old_cal.days[d] and b[1] <= new_cal.days[d]]
+        if fits:
+            return max(fits, key=lambda b: (len(b[0]) + len(b[1]), sorted(b[0]), sorted(b[1])))[2]
+        return regular.get(type_of(d), collections.Counter())
+
+    groups: dict[tuple, dict] = {}
+    seen: set[str] = set()
+    differing = 0
+    for d in sorted(d for d in set(old_cal.days) & set(new_cal.days) if after is None or d >= after):
+        (a, ta), (b, tb) = day("old", old_cal.days[d]), day("new", new_cal.days[d])
+        seen.update(t.trip_id for t in ta + tb)
+        rest = change(a, b)
+        rest.subtract(base(d))
+        rest = collections.Counter({k: v for k, v in rest.items() if v})
+        if not rest:
+            continue
+        differing += 1
+        key = tuple(sorted(rest.items(), key=repr))  # times may hold None (no time at a stop)
+        g = groups.setdefault(key, {"dates": [], "day_types": set(), "before": sum(a.values()), "after": sum(b.values())})
+        g["dates"].append(d)
+        g["day_types"].add(type_of(d))
+
+    def dep(times: tuple) -> int | None:
+        return next((x for x in times if x is not None), None)
+
+    out = []
+    for key, g in groups.items():
+        added = [(line, places, times) for (line, places, times), v in key if v > 0 for _ in range(v)]
+        removed = [(line, places, times) for (line, places, times), v in key if v < 0 for _ in range(-v)]
+        # An added and a removed trip of one line departing within max_shift of each other are one
+        # retimed or rerouted trip; nearest departures first.
+        pairs = sorted((abs(dep(a[2]) - dep(r[2])), i, j) for i, a in enumerate(added) for j, r in enumerate(removed)
+                       if a[0] == r[0] and dep(a[2]) is not None and dep(r[2]) is not None and abs(dep(a[2]) - dep(r[2])) <= max_shift)
+        used_a, used_r, changed = set(), set(), []
+        for _, i, j in pairs:
+            if i in used_a or j in used_r:
+                continue
+            used_a.add(i)
+            used_r.add(j)
+            changed.append({"line": added[i][0], "departure": _time(dep(added[i][2])), "old_departure": _time(dep(removed[j][2]))})
+        as_items = lambda xs, used: [{"line": line, "departure": _time(dep(times)), "from": places[0], "to": places[-1]}
+                                     for k, (line, places, times) in enumerate(xs) if k not in used]
+        added_items, removed_items = as_items(added, used_a), as_items(removed, used_r)
+        order = lambda x: (x["line"], x["departure"] if x["departure"] is not None else 10**6)
+        added_items.sort(key=order)
+        removed_items.sort(key=order)
+        changed.sort(key=order)
+        out.append({
+            "dates": _spans(g["dates"]), "date_count": len(g["dates"]),
+            "day_types": sorted((dt for dt in g["day_types"] if dt), key=day_type_order),
+            "before": g["before"], "after": g["after"],
+            "added_count": len(added_items), "removed_count": len(removed_items), "changed_count": len(changed),
+            "added": added_items[:max_trips], "removed": removed_items[:max_trips], "changed": changed[:max_trips],
+        })
+    out.sort(key=lambda x: x["dates"][0]["start"])
+    return out[:max_groups], seen, differing
+
+
+def _pair_order(p: TripPair, a: list[Trip], b: list[Trip]) -> tuple:
+    """Difference-view columns by earliest departure of either side."""
+    times = [t.first_departure for t in (a[p.old] if p.old is not None else None, b[p.new] if p.new is not None else None)
+             if t is not None and t.first_departure is not None]
+    return (min(times) if times else 10**6, -1 if p.old is None else p.old, -1 if p.new is None else p.new)
+
+
+def _details(changes: list[dict], ids: list[str], limit: int) -> tuple[list[dict], int]:
+    """Row-level items of one Other topic, at most `limit`; shapes are summarised per shape_id."""
+    wanted = set(ids)
+    items: list[dict] = []
+    shapes: dict[str, collections.Counter] = {}
+    for c in changes:
+        if c["id"] not in wanted:
+            continue
+        if c["file"] == "shapes.txt" and c["kind"] in ("row_added", "row_removed", "field_changed"):
+            row = c.get("old") if c["kind"] == "row_removed" else c.get("new")
+            sid = c["key"][0] if c.get("key") else (row or {}).get("shape_id", "")
+            kind = {"row_added": "added", "row_removed": "removed", "field_changed": "changed_fields"}[c["kind"]]
+            shapes.setdefault(sid, collections.Counter())[kind] += 1
+            continue
+        items.append({"id": c["id"], "file": c["file"], "kind": c["kind"], "key": c.get("key"), "column": c.get("column"),
+                      "old": c.get("old"), "new": c.get("new"), "counts": c.get("counts")})
+    for sid, counts in sorted(shapes.items()):
+        items.append({"id": None, "file": "shapes.txt", "kind": "shape_changed", "key": [sid], "column": None,
+                      "old": None, "new": None, "counts": dict(sorted(counts.items()))})
+    return items[:limit], max(0, len(items) - limit)
+
+
+def _calendar_details(changes: list[dict], ids: list[str], old_cal, new_cal, limit: int) -> tuple[list[dict], int]:
+    """calendar_dates differences by effect: dates a service gained or lost within the period
+    both publications cover, one item per service; rewrites with no effect, dates outside the
+    shared period and services no trip uses are counted apart."""
+    wanted = set(ids)
+    shared = set(old_cal.days) & set(new_cal.days)
+    gained: dict[str, set] = collections.defaultdict(set)
+    lost: dict[str, set] = collections.defaultdict(set)
+    other: collections.Counter = collections.Counter()
+    for c in changes:
+        if c["id"] not in wanted:
+            continue
+        row = c.get("old") if isinstance(c.get("old"), dict) else c.get("new") if isinstance(c.get("new"), dict) else {}
+        sid, raw_date = (c["key"][0], c["key"][1]) if c.get("key") and len(c["key"]) >= 2 else (row.get("service_id", ""), row.get("date", ""))
+        d = parse_yyyymmdd(raw_date)
+        if sid not in old_cal.service_dates and sid not in new_cal.service_dates:
+            other["calendar_unused_service"] += 1
+        elif d is None or d not in shared:
+            other["calendar_outside_shared"] += 1
+        else:
+            before, after = d in old_cal.service_dates.get(sid, ()), d in new_cal.service_dates.get(sid, ())
+            if before == after:
+                other["calendar_no_effect"] += 1
+            elif after:
+                gained[sid].add(d)
+            else:
+                lost[sid].add(d)
+    text = lambda ds: ", ".join(x["start"] if x["start"] == x["end"] else f"{x['start']}..{x['end']}" for x in _spans(list(ds))) or None
+    items = [{"id": None, "file": "calendar_dates.txt", "kind": "service_dates_changed", "key": [sid], "column": None,
+              "old": text(lost[sid]), "new": text(gained[sid]), "counts": {"added": len(gained[sid]), "removed": len(lost[sid])}}
+             for sid in sorted(set(gained) | set(lost))]
+    items += [{"id": None, "file": "calendar_dates.txt", "kind": kind, "key": None, "column": None, "old": None, "new": None,
+               "counts": {"rows": n}} for kind, n in sorted(other.items())]
+    return items[:limit], max(0, len(items) - limit)
+
+
+def _attribute_details(changes: list[dict], ids: list[str], limit: int, line_of: dict[tuple[str, str], str]) -> tuple[list[dict], int]:
+    """Attribute changes grouped by file, column, line and old -> new value, most frequent first.
+
+    line_of maps ("trip", trip_id) and ("route", route_id) to a report line key. Coordinate
+    changes below the moved-stop threshold are one group per column.
+    """
+    wanted = set(ids)
+    groups: collections.Counter = collections.Counter()
+    for c in changes:
+        if c["id"] not in wanted:
+            continue
+        name, kind, column = c["file"], c["kind"], c.get("column")
+        if kind != "field_changed":
+            groups[(name, kind, column, None, None, None)] += 1
+            continue
+        ref = (c.get("key") or [None])[0]
+        label = line_of.get(("trip", ref)) if name in ("trips.txt", "stop_times.txt") else line_of.get(("route", ref)) if name == "routes.txt" else None
+        if name == "stops.txt" and column in ("stop_lat", "stop_lon"):
+            groups[(name, "coordinates_adjusted", column, None, None, None)] += 1
+        else:
+            groups[(name, "attribute_changed", column, label, c.get("old"), c.get("new"))] += 1
+    items = [{"id": None, "file": name, "kind": kind, "key": [label] if label else None, "column": column,
+              "old": old, "new": new, "counts": {"rows": n}}
+             for (name, kind, column, label, old, new), n in sorted(groups.items(), key=lambda x: (-x[1], tuple(str(v) for v in x[0])))]
+    return items[:limit], max(0, len(items) - limit)
+
+
+STRUCTURAL = frozenset({"file_added", "file_removed", "column_added", "column_removed", "file_changed_opaque", "rows_bulk"})
+_BUCKET_RANK = {"classified": 0, "outside_comparison": 1, "unclassified": 2}
+
+
+def _file_table(raw: dict, acc) -> tuple[dict[str, dict], dict[str, int]]:
+    """Every file of either side, counted in rows: a row with several changed fields counts once,
+    in the least explained bucket of its fields. File and column changes are listed apart and
+    counted as one item each. Returns the table and the totals for the coverage header."""
+    bucket = {cid: "classified" for cid in acc.explained}
+    bucket.update({cid: "outside_comparison" for cid in acc.outside})
+    bucket.update({cid: "unclassified" for cid in acc.unclassified})
+    by_file: dict[str, list[dict]] = collections.defaultdict(list)
+    for c in raw["changes"]:
+        by_file[c["file"]].append(c)
+    out: dict[str, dict] = {}
+    totals = collections.Counter()
+    for name, meta in sorted(raw["files"].items()):
+        rows: dict[tuple, str] = {}
+        structure = []
+        for c in by_file.get(name, []):
+            b = bucket[c["id"]]
+            if c["kind"] in STRUCTURAL:
+                structure.append({"kind": c["kind"], "column": c.get("column"), "bucket": b})
+                continue
+            rk = ("changed", tuple(c["key"])) if c["kind"] == "field_changed" else (c["kind"], c["id"])
+            rows[rk] = max(rows.get(rk, b), b, key=_BUCKET_RANK.__getitem__)
+        counts = collections.Counter(rows.values()) + collections.Counter(x["bucket"] for x in structure)
+        entry = {
+            "old_rows": meta["rows"]["old"], "new_rows": meta["rows"]["new"],
+            "added": sum(k[0] == "row_added" for k in rows), "removed": sum(k[0] == "row_removed" for k in rows),
+            "changed_rows": sum(k[0] == "changed" for k in rows), "changed_fields": meta["counts"].get("field_changed", 0),
+            "columns": dict(sorted(collections.Counter(c["column"] for c in by_file.get(name, []) if c["kind"] == "field_changed").items())),
+            "structure": structure, "changes": len(rows) + len(structure),
+            "classified": counts["classified"], "outside_comparison": counts["outside_comparison"],
+            "unclassified": counts["unclassified"],
+        }
+        out[name] = entry
+        totals.update({k: entry[k] for k in ("changes", "classified", "outside_comparison", "unclassified")})
+    return out, totals
+
+
+def _counts(changes: list[dict], ids: list[str]) -> dict[str, int]:
+    wanted = set(ids)
+    counts: collections.Counter = collections.Counter()
+    for c in changes:
+        if c["id"] in wanted:
+            counts[{"row_added": "added", "row_removed": "removed", "field_changed": "changed_fields"}.get(c["kind"], c["kind"])] += 1
+    return dict(sorted(counts.items()))
+
+
+def _fares(changes: list[dict]) -> dict:
+    fare = [c for c in changes if c["file"] in ("fare_attributes.txt", "fare_rules.txt")]
+    attrs = [c for c in fare if c["file"] == "fare_attributes.txt"]
+    return {
+        "changed": bool(fare),
+        "classes_added": sum(c["kind"] == "row_added" for c in attrs),
+        "classes_removed": sum(c["kind"] == "row_removed" for c in attrs),
+        "prices_changed": len({tuple(c["key"]) for c in attrs if c["kind"] == "field_changed" and c.get("column") == "price"}),
+    }
+
+
+def build_report_from_feeds(old_feed: Feed, new_feed: Feed, *, feed: dict, old_pub: dict, new_pub: dict,
+                            config: Config, holidays: HolidayTable, summary_quality: dict | None = None,
+                            analysis_key: str | None = None, extra_notes: list[dict] | None = None) -> tuple[dict, dict]:
+    """Return (report, raw diff). feed: {org_id, feed_id}; *_pub: publication header fields."""
+    raw = diff_feeds(old_feed, new_feed, config)
+    ot, nt = old_feed.tables, new_feed.tables
+    cfg = config.matching
+
+    old_cal = build_calendar(ot, holidays, config, (_date(old_pub["from_date"]), _date(old_pub.get("to_date"))))
+    new_cal = build_calendar(nt, holidays, config, (_date(new_pub["from_date"]), _date(new_pub.get("to_date"))))
+    # Off by default (gtfs-data.jp publications look ahead); a source that republishes daily turns it on.
+    published = new_pub.get("published_at") if cfg.get("compare_from_publication", False) else None
+    after = datetime.fromisoformat(published).date() if published else None
+    comparison = choose_comparison(old_cal, new_cal, config, after)
+
+    op, np_ = build_places(ot.get("stops.txt"), cfg), build_places(nt.get("stops.txt"), cfg)
+    place_matches = match_places(op, np_, cfg)
+    to_new = {m.old.place_id: m.new.place_id for m in place_matches if m.old and m.new}
+    places = _PlaceIndex(place_matches)
+
+    old_lines, new_lines = build_lines(ot, place_of_stop(op), cfg), build_lines(nt, place_of_stop(np_), cfg)
+    groups = _groups(match_lines(old_lines, new_lines, to_new, cfg), old_lines, new_lines)
+    old_route_line = {r: l.key for l in old_lines.values() for r in l.route_ids}
+    new_route_line = {r: l.key for l in new_lines.values() for r in l.route_ids}
+    group_of_old = {k: g for g in groups for k in g.match.old}
+    group_of_new = {k: g for g in groups for k in g.match.new}
+
+    ev = Evidence()
+    # 1. Per line, direction and day type: combos[(group key, direction, day type)] = (old trips, new trips, pairs)
+    combos: dict[tuple[str, str, str], tuple[list[Trip], list[Trip], list[TripPair]]] = {}
+    totals: dict[str, dict[str, int]] = {}
+    for dt, choice in comparison.day_types.items():
+        old_trips = build_trips(ot, choice.old_services, old_route_line, place_of_stop(op), translate=to_new)
+        new_trips = build_trips(nt, choice.new_services, new_route_line, place_of_stop(np_))
+        if cfg.get("direction_align"):
+            old_trips = align_directions(old_trips, new_trips, lambda l: group_of_old[l].key, lambda l: group_of_new[l].key)
+        totals[dt] = {"before": len(old_trips), "after": len(new_trips)}
+        by: dict[tuple[str, str], tuple[list[Trip], list[Trip]]] = collections.defaultdict(lambda: ([], []))
+        for t in old_trips:
+            by[(group_of_old[t.line].key, t.direction)][0].append(t)
+            ev.compared_trips.add(t.trip_id)
+        for t in new_trips:
+            by[(group_of_new[t.line].key, t.direction)][1].append(t)
+            ev.compared_trips.add(t.trip_id)
+        for (gkey, direction), (a, b) in by.items():
+            a, b = _sort_trips(a), _sort_trips(b)
+            combos[(gkey, direction, dt)] = (a, b, match_trips(a, b, cfg))
+
+    # 2. Trips left unmatched in their own line may have moved to another line or direction (a route
+    # variant of the same corridor): matched again across lines with stricter rules.
+    moves: list[dict] = []
+    moved: set[tuple[str, str, str, str, int]] = set()  # (side, group key, direction, day type, trip index)
+    facts = Facts()  # source ids behind the report's conclusions, for report.events
+    for dt in comparison.day_types:
+        left_old = [(k, p.old) for k, (a, b, pairs) in sorted(combos.items()) if k[2] == dt for p in pairs if p.new is None]
+        left_new = [(k, p.new) for k, (a, b, pairs) in sorted(combos.items()) if k[2] == dt for p in pairs if p.old is None]
+        if not left_old or not left_new:
+            continue
+        lo = [combos[k][0][i] for k, i in left_old]
+        ln = [combos[k][1][j] for k, j in left_new]
+        for p in match_moved_trips(lo, ln, cfg):
+            if p.old is None or p.new is None:
+                continue
+            (ko, i), (kn, j) = left_old[p.old], left_new[p.new]
+            edits = pattern_edits(lo[p.old].places, ln[p.new].places)
+            places.use(x for e in edits for x in e.places)
+            moves.append({"day_type": dt, "kind": p.kind,
+                          "old": {"line": ko[0], "direction": ko[1], "trip": i},
+                          "new": {"line": kn[0], "direction": kn[1], "trip": j},
+                          "edits": [{"kind": e.kind, "places": list(e.places)} for e in edits]})
+            moved.update({("old", *ko, i), ("new", *kn, j)})
+            facts.trip_ids.add((lo[p.old].trip_id, ln[p.new].trip_id))
+            if ko[0] != kn[0]:
+                facts.moves[(ko[0], kn[0], dt)][0] += 1
+                facts.moves[(ko[0], kn[0], dt)][1].update((lo[p.old].trip_id, ln[p.new].trip_id))
+    moves.sort(key=lambda m: (m["old"]["line"], m["old"]["direction"], day_type_order(m["day_type"]), m["old"]["trip"]))
+    lines_with_moves = {m[s]["line"] for m in moves for s in ("old", "new")}
+
+    # 2b. Every date both publications cover, trip by trip.
+    old_service = {r[0]: r[1] for r in _column_pairs(ot.get("trips.txt"), "trip_id", "service_id")}
+    new_service = {r[0]: r[1] for r in _column_pairs(nt.get("trips.txt"), "trip_id", "service_id")}
+    all_old = build_trips(ot, frozenset(old_service.values()), old_route_line, place_of_stop(op), translate=to_new)
+    all_new = build_trips(nt, frozenset(new_service.values()), new_route_line, place_of_stop(np_))
+    if cfg.get("direction_align"):
+        all_old = align_directions(all_old, all_new, lambda l: group_of_old[l].key, lambda l: group_of_new[l].key)
+
+    def trips_of(side: str, services: frozenset) -> list[Trip]:
+        pool, service, group_of = (all_old, old_service, group_of_old) if side == "old" else (all_new, new_service, group_of_new)
+        return [Trip(t.trip_id, group_of[t.line].key, t.direction, t.places, t.times) for t in pool if service.get(t.trip_id) in services]
+
+    typical = {dt: (c.old_date, c.new_date) for dt, c in comparison.day_types.items()}
+    date_changes, ev.date_trips, differing_dates = _date_changes(
+        old_cal, new_cal, typical, lambda d: comparison.day_type_of(new_cal.categories[d]), trips_of, config.report["date_changes_max"], config.report["date_change_trips_max"],
+        cfg["trip_max_shift_min"], after)
+    for g in date_changes:
+        for item in g["added"] + g["removed"]:
+            places.use((item["from"], item["to"]))
+
+    # 3. Report blocks.
+    # Route geometry: the most used shape of a line direction, else the line through its stops.
+    shapes = {"old": load_shapes(ot.get("shapes.txt")), "new": load_shapes(nt.get("shapes.txt"))}
+    shape_of = {"old": dict(_column_pairs(ot.get("trips.txt"), "trip_id", "shape_id")),
+                "new": dict(_column_pairs(nt.get("trips.txt"), "trip_id", "shape_id"))}
+
+    def place_point(ref: str):
+        p = op.get(ref[4:]) if ref.startswith("old:") else np_.get(ref)
+        return (p.lat, p.lon) if p is not None and p.lat is not None and p.lon is not None else None
+
+    def side_geometry(side: str, trips: list[Trip]) -> dict | None:
+        if not trips:
+            return None
+        used = collections.Counter(shape_of[side].get(t.trip_id, "") for t in trips)
+        used.pop("", None)
+        for sid, _ in sorted(used.items(), key=lambda x: (-x[1], x[0])):
+            if sid in shapes[side]:
+                points, source = shapes[side][sid], "shape"
+                break
+        else:
+            points = [pt for pt in map(place_point, dominant_pattern(trips)) if pt is not None]
+            source = "stops"
+        if len(points) < 2:
+            return None
+        points = simplify(points, config.report["geometry_tolerance_m"])
+        return {"source": source, "length_m": round(length_m(points)), "points": points}
+
+    def geometry(direction: str, by_dt: dict) -> dict | None:
+        old = side_geometry("old", [t for a, _, _ in by_dt.values() for t in a])
+        new = side_geometry("new", [t for _, b, _ in by_dt.values() for t in b])
+        if old is None and new is None:
+            return None
+        change = None
+        if old and new:
+            change = compare_geometry(old["points"], new["points"], config.report["geometry_sample_m"],
+                                      config.report["geometry_diverge_m"], config.report["geometry_cap_m"])
+        identical = bool(old and new and encode(old["points"]) == encode(new["points"]))
+        pack = lambda g: None if g is None else dict(g, points=encode(g["points"]))
+        # End places of the direction (new side first), so a direction without direction_id has a name.
+        pattern = dominant_pattern([t for _, b, _ in by_dt.values() for t in b]) or dominant_pattern([t for a, _, _ in by_dt.values() for t in a])
+        ends = (pattern[0], pattern[-1]) if pattern else (None, None)
+        places.use(x for x in ends if x is not None)
+        return {"direction": direction, "from": ends[0], "to": ends[1], "identical": identical,
+                "old": None if identical else pack(old), "new": pack(new), "change": change}
+
+    shift = cfg["first_last_min_shift"]
+    first_last_changed = 0
+    service_facts: dict[tuple[str, str], list] = {}  # (line, day type) -> [trips before, after, unpaired trip ids, their services]
+    retimed_facts: dict[tuple[str, str], list] = {}  # (line, day type) -> [retimed pairs, their trip ids]
+    line_docs = []
+    by_group: dict[str, dict[str, dict[str, tuple]]] = collections.defaultdict(lambda: collections.defaultdict(dict))
+    for (gkey, direction, dt), combo in combos.items():
+        by_group[gkey][direction][dt] = combo
+    for g in sorted(groups, key=lambda g: g.key):
+        by_dir = by_group.get(g.key, {})
+        doc_trips, first_last, patterns, timetables = [], [], [], []
+        geometries = [x for x in (geometry(d, by_dir[d]) for d in sorted(by_dir)) if x is not None]
+        route_moved = any(gm["change"] and (gm["change"]["diverged_new_m"] or gm["change"]["diverged_old_m"]) for gm in geometries)
+        changed = g.key in lines_with_moves
+        for direction in sorted(by_dir):
+            # Pattern edits seen on paired trips of this line, with the number of trips showing them.
+            seen: collections.Counter = collections.Counter()
+            seen_trips: dict[tuple[str, tuple[str, ...]], set[str]] = collections.defaultdict(set)
+            for dt, (a, b, pairs) in by_dir[direction].items():
+                for p in pairs:
+                    if p.kind in ("rerouted", "retimed_rerouted"):
+                        for e in pattern_edits(a[p.old].places, b[p.new].places):
+                            seen[(e.kind, e.places)] += 1
+                            seen_trips[(e.kind, e.places)].update((a[p.old].trip_id, b[p.new].trip_id))
+            # Trips of this line that changed direction key (no direction_id, new end points).
+            for m in moves:
+                if m["old"]["line"] == m["new"]["line"] == g.key and m["new"]["direction"] == direction:
+                    move_trips = {combos[(m["old"]["line"], m["old"]["direction"], m["day_type"])][0][m["old"]["trip"]].trip_id,
+                                  combos[(m["new"]["line"], m["new"]["direction"], m["day_type"])][1][m["new"]["trip"]].trip_id}
+                    for e in m["edits"]:
+                        seen[(e["kind"], tuple(e["places"]))] += 1
+                        seen_trips[(e["kind"], tuple(e["places"]))].update(move_trips)
+            if config.report.get("pattern_shifts"):
+                seen = collections.Counter(shift_edits(seen))
+            edits = [{"kind": k, "places": list(ps), "trips": n} for (k, ps), n in sorted(seen.items(), key=lambda x: (-x[1], x[0]))]
+            # Every trip paired and none rerouted: the route did not change. With aligned directions a
+            # direction can hold trips of both ways, whose dominant patterns would compare as noise.
+            all_paired = cfg.get("direction_align") and all(
+                p.old is not None and p.new is not None for _, _, pairs in by_dir[direction].values() for p in pairs)
+            for e in edits:
+                same_set = {k for k in seen_trips if frozenset(k[1]) == frozenset(e["places"])}
+                trips = seen_trips.get((e["kind"], tuple(e["places"])), set()) if e["kind"] != "shifted" else \
+                    set().union(*(seen_trips[k] for k in same_set))
+                facts.edits.append((g.key, direction, e["kind"], e["places"], e["trips"], trips))
+            if not edits and not all_paired:  # no paired trip changed route: compare the dominant patterns of both sides
+                all_old = [t for a, _, _ in by_dir[direction].values() for t in a]
+                all_new = [t for _, b, _ in by_dir[direction].values() for t in b]
+                dom_old, dom_new = dominant_pattern(all_old), dominant_pattern(all_new)
+                edits = [{"kind": e.kind, "places": list(e.places), "trips": None}
+                         for e in pattern_edits(dom_old, dom_new)]
+                dom_trips = {t.trip_id for t in all_old if t.places == dom_old} | {t.trip_id for t in all_new if t.places == dom_new}
+                for e in edits:
+                    facts.edits.append((g.key, direction, e["kind"], e["places"], None, dom_trips))
+            if edits:
+                changed = True
+                places.use(x for e in edits for x in e["places"])
+                patterns.append({"direction": direction, "edits": edits})
+            for dt in comparison.day_types:
+                if dt not in by_dir[direction]:
+                    continue
+                a, b, pairs = by_dir[direction][dt]
+                combo_changed = False
+                service = service_facts.setdefault((g.key, dt), [0, 0, set(), set()])
+                service[0] += len(a)
+                service[1] += len(b)
+                for p in pairs:
+                    ta = a[p.old] if p.old is not None else None
+                    tb = b[p.new] if p.new is not None else None
+                    if ta is not None and tb is not None:
+                        facts.trip_ids.add((ta.trip_id, tb.trip_id))
+                        if p.kind in ("retimed", "retimed_rerouted"):
+                            retimed = retimed_facts.setdefault((g.key, dt), [0, set()])
+                            retimed[0] += 1
+                            retimed[1].update((ta.trip_id, tb.trip_id))
+                    elif ta is not None:
+                        service[2].add(ta.trip_id)
+                        service[3].add(old_service.get(ta.trip_id, ""))
+                    else:
+                        service[2].add(tb.trip_id)
+                        service[3].add(new_service.get(tb.trip_id, ""))
+                    if p.kind != "exact":
+                        combo_changed = True
+                    if p.kind != "exact" or ta.trip_id != tb.trip_id:
+                        ev.changed_trips.update(t.trip_id for t in (ta, tb) if t is not None)
+                    else:
+                        ev.same_trips.add(ta.trip_id)
+                if combo_changed:
+                    changed = True
+                    old_tt, new_tt = _timetable(a, places), _timetable(b, places)
+                    order = sorted(pairs, key=lambda p: _pair_order(p, a, b))
+                    timetables.append({"direction": direction, "day_type": dt, "old": old_tt, "new": new_tt,
+                                       "pairs": [[p.old, p.new] for p in order]})
+                bands: dict[str, dict[str, int]] = {}
+                for side, side_trips in (("before", a), ("after", b)):
+                    for t in side_trips:
+                        if t.first_departure is not None:
+                            bands.setdefault(_band(t.first_departure), {"before": 0, "after": 0})[side] += 1
+                entry = {"direction": direction, "day_type": dt, "bands": dict(sorted(bands.items()))}
+                if config.report.get("dwell"):
+                    entry["dwell"] = {side: _median_dwell(side_trips) for side, side_trips in (("before", a), ("after", b))}
+                doc_trips.append(entry)
+                first = {"before": _time(a[0].first_departure) if a else None, "after": _time(b[0].first_departure) if b else None}
+                lasts_a = [t.first_departure for t in a if t.first_departure is not None]
+                lasts_b = [t.first_departure for t in b if t.first_departure is not None]
+                last = {"before": _time(max(lasts_a)) if lasts_a else None, "after": _time(max(lasts_b)) if lasts_b else None}
+                first_last.append({"direction": direction, "day_type": dt, "first": first, "last": last})
+                if any(x["before"] is not None and x["after"] is not None and abs(x["after"] - x["before"]) >= shift
+                       for x in (first, last)):
+                    first_last_changed += 1
+                    ends = set()
+                    for side in (a, b):
+                        timed = [t for t in side if t.first_departure is not None]
+                        ends.update(t.trip_id for t in side[:1])
+                        if timed:
+                            ends.add(max(timed, key=lambda t: t.first_departure).trip_id)
+                    facts.first_last.append((g.key, direction, dt, ends))
+        changed = changed or route_moved
+        relation = g.match.relation
+        status = ("changed" if changed else "unchanged") if relation == "same" else relation
+        facts.lines.append((g.key, status, tuple(r for l in g.old for r in l.route_ids), tuple(r for l in g.new for r in l.route_ids),
+                            {t.trip_id for d in by_dir.values() for a, b, _ in d.values() for t in a + b}))
+        if status != "unchanged":
+            ev.changed_routes.update(r for l in g.old + g.new for r in l.route_ids)
+        else:
+            # Same line, same service: routes whose id changed are renumbering.
+            ev.changed_routes.update({r for l in g.old for r in l.route_ids} ^ {r for l in g.new for r in l.route_ids})
+            doc_trips, first_last = [], []
+        line_docs.append({
+            "key": g.key,
+            "status": status,
+            "old": _side(g.old),
+            "new": _side(g.new),
+            "related": sorted({m["new" if m["old"]["line"] == g.key else "old"]["line"] for m in moves
+                               if g.key in (m["old"]["line"], m["new"]["line"])} - {g.key}),
+            "match": None if g.match.method is None else {"method": g.match.method, "confidence": g.match.confidence},
+            "trips": doc_trips,
+            "first_last": first_last,
+            "patterns": patterns,
+            "timetables": timetables,
+            "geometry": geometries,
+        })
+
+    for m in place_matches:
+        if m.status != "unchanged" or (m.old and m.new and m.old.place_id != m.new.place_id):
+            ev.changed_stops.update(m.old.members if m.old else ())
+            ev.changed_stops.update(m.new.members if m.new else ())
+
+    # Lines serving each place, in report keys.
+    serving: dict[str, set[str]] = collections.defaultdict(set)
+    for g in groups:
+        for l in g.new:
+            for p in l.places:
+                serving[p].add(g.key)
+        for l in g.old:
+            for p in l.places:
+                serving[to_new.get(p, "old:" + p)].add(g.key)
+
+    order = places.freeze()
+    place_docs = []
+    for ref in order:
+        m = places.lookup(ref)
+        place_docs.append({
+            "status": m.status,
+            "old": _stop(m.old),
+            "new": _stop(m.new),
+            "match": None if m.method is None else {"method": m.method, "confidence": m.confidence},
+            "moved_m": m.distance_m if m.status in ("moved", "renamed_moved") else None,
+            "lines": sorted(serving.get(ref, ())),
+        })
+    for g in date_changes:
+        for item in g["added"] + g["removed"]:
+            item["from"], item["to"] = places[item["from"]], places[item["to"]]
+    for m in moves:
+        for edit in m["edits"]:
+            edit["places"] = [places[r] for r in edit["places"]]
+    for line in line_docs:
+        for gm in line["geometry"]:
+            gm["from"] = None if gm["from"] is None else places[gm["from"]]
+            gm["to"] = None if gm["to"] is None else places[gm["to"]]
+    for line in line_docs:
+        for pattern in line["patterns"]:
+            for edit in pattern["edits"]:
+                edit["places"] = [places[r] for r in edit["places"]]
+        for table in line["timetables"]:
+            for side in ("old", "new"):
+                if table[side] is not None:
+                    table[side]["places"] = [places[r] for r in table[side]["places"]]
+
+    ev.old_stop_place = {sid: to_new[pid] for sid, pid in place_of_stop(op).items() if pid in to_new}
+    ev.new_stop_place = place_of_stop(np_)
+    line_of: dict[tuple[str, str], str] = {}
+    for (gkey, _, _), (a, b, _) in combos.items():
+        line_of.update({("trip", t.trip_id): gkey for t in a + b})
+    for g in groups:
+        line_of.update({("route", r): g.key for l in g.old + g.new for r in l.route_ids})
+    ev.route_line = {r: g.key for g in groups for l in g.old + g.new for r in l.route_ids}
+    ev.family_routes = {r for l in (*old_lines.values(), *new_lines.values()) for r in l.family_routes}
+    if cfg.get("stop_group_radius_m"):
+        ev.grouped_stops = {m for p in (*op.values(), *np_.values()) if len(p.members) > 1 for m in p.members}
+    acc = classify(raw, ev)
+    file_table, file_totals = _file_table(raw, acc)
+    unclassified_details, unclassified_truncated = _details(raw["changes"], acc.unclassified, config.report["other_details_max"])
+    notes: list[dict] = []
+    old_jp = sorted(n for n in ot if n in JP_FILES)
+    new_jp = sorted(n for n in nt if n in JP_FILES)
+    if old_jp != new_jp:
+        notes.append({"code": "FORMAT_DIFFERENCE", "old_files": old_jp, "new_files": new_jp})
+    notes.extend(extra_notes or [])
+    if not any(c.old_date and c.new_date for c in comparison.day_types.values()):
+        notes.append({"code": "NO_COMMON_DAY_TYPE"})
+    if acc.outside:
+        notes.append({"code": "OUTSIDE_COMPARISON_PRESENT"})
+
+    status_counts = collections.Counter(l["status"] for l in line_docs)
+    place_status = collections.Counter(m.status for m in place_matches)
+    report = {
+        "schema": SCHEMA,
+        "header": {
+            "feed": {"org_id": feed["org_id"], "feed_id": feed["feed_id"]},
+            "old": {k: old_pub.get(k) for k in ("uid", "from_date", "to_date", "published_at")} | {"memo": old_pub.get("memo") or ""},
+            "new": {k: new_pub.get(k) for k in ("uid", "from_date", "to_date", "published_at")} | {"memo": new_pub.get("memo") or ""},
+            "comparison": {
+                "mode": comparison.mode,
+                "day_types": {dt: {"old_date": c.old_date.isoformat() if c.old_date else None,
+                                   "new_date": c.new_date.isoformat() if c.new_date else None}
+                              for dt, c in comparison.day_types.items()},
+                # Each publication's own day types; the comparison uses their common refinement.
+                "groups": {side: sorted(set(cal.groups.values()), key=day_type_order) for side, cal in (("old", old_cal), ("new", new_cal))},
+            },
+            "notes": notes,
+            "engine": {"version": ENGINE_VERSION, "config": config.as_dict(), "holidays_version": holidays.version},
+            "coverage": {"raw_total": file_totals["changes"], "explained": file_totals["classified"],
+                         "outside_comparison": file_totals["outside_comparison"], "unclassified": file_totals["unclassified"]},
+        },
+        "summary": {
+            "lines": {s: status_counts[s] for s in LINE_STATUS_ORDER},
+            "places": {
+                "added": place_status["added"],
+                "removed": place_status["removed"],
+                "renamed": place_status["renamed"] + place_status["renamed_moved"],
+                "moved": place_status["moved"] + place_status["renamed_moved"],
+            },
+            "trips_by_day_type": totals,
+            "first_last_changed": first_last_changed,
+            "date_changes": differing_dates,
+            "trip_moves": len(moves),
+            "fares": _fares(raw["changes"]),
+            "quality": summary_quality,
+            **({"renumbered": _renumbered(place_matches, groups, combos)} if config.report.get("renumbering") else {}),
+        },
+        "service_days": {
+            "day_types": {dt: {"active_days": {"before": old_cal.active_days(dt.split(",")), "after": new_cal.active_days(dt.split(","))}}
+                          for dt in comparison.day_types},
+            "periods": {side: [{"day_type": p.day_type, "start": p.start.isoformat(), "end": p.end.isoformat()}
+                               for p in cal.periods] for side, cal in (("old", old_cal), ("new", new_cal))},
+            "special_days": {side: sorted(d.isoformat() for d in cal.special) for side, cal in (("old", old_cal), ("new", new_cal))},
+            "date_changes": date_changes,
+            "irregular": {side: _irregular(cal, tables, config) for side, cal, tables in (("old", old_cal, ot), ("new", new_cal, nt))},
+        },
+        "places": place_docs,
+        "lines": line_docs,
+        "moves": moves,
+        "other": [{"topic": topic, "counts": _counts(raw["changes"], ids), "evidence": ids,
+                   **dict(zip(("details", "truncated"),
+                              _attribute_details(raw["changes"], ids, config.report["other_details_max"], line_of) if topic == "attributes"
+                              else _calendar_details(raw["changes"], ids, old_cal, new_cal, config.report["other_details_max"]) if topic == "calendar_exceptions"
+                              else _details(raw["changes"], ids, config.report["other_details_max"])))}
+                  for topic, ids in sorted(acc.other.items())],
+        "accounting": {"files": file_table, "unclassified": acc.unclassified,
+                       "unclassified_details": unclassified_details, "unclassified_truncated": unclassified_truncated},
+        "quality": {"analysis_key": analysis_key} if analysis_key else None,
+    }
+    if config.report.get("events"):
+        for (key, dt), (before, after, trips, services) in sorted(service_facts.items()):
+            facts.service.append((key, dt, before, after, trips, services - {""}))
+        facts.retimed = [(key, dt, n, trips) for (key, dt), (n, trips) in sorted(retimed_facts.items())]
+        facts.places = [(places.index.get(places.ref(m)), m.status, m.old.members if m.old else (), m.new.members if m.new else ())
+                        for m in place_matches]
+        facts.edits = [(key, d, kind, [places[r] for r in refs], n, trips) for key, d, kind, refs, n, trips in facts.edits]
+        facts.other = acc.other
+        for trip_id, service_id in (*old_service.items(), *new_service.items()):
+            facts.trip_services[trip_id].add(service_id)
+        report["events"] = build_events(facts, raw)
+        report["mappings"] = build_mappings(facts)
+    problems = check_report(report)
+    if problems:
+        raise ReportInconsistent("; ".join(problems[:10]))
+    return report, raw
+
+
+def build_report(old_zip: Path, new_zip: Path, *, config: Config | None = None, holidays: HolidayTable | None = None,
+                 **kwargs) -> tuple[dict, dict]:
+    config = config or Config.load()
+    return build_report_from_feeds(read_feed(old_zip, config), read_feed(new_zip, config), config=config,
+                                   holidays=holidays or default_table(), **kwargs)

@@ -1,5 +1,6 @@
 # Catalog and versions + analysis + semantic reports + GitHub Pages site for transport.data.gouv.fr feeds.
-# The stages are gtfs-jp-monitor's, checked out at JP_REF and run with the French source and profile.
+# The engine and pipeline live in this repository (src/gtfs_jp_semantic, src/gtfs_jp_monitor), run with
+# the French source and profile.
 #
 # Required configuration:
 #   secrets.DATA_REPO_TOKEN   fine-grained token, contents: write on ttezer/gtfs-fr-data only
@@ -45,8 +46,7 @@ jobs:
     runs-on: ubuntu-24.04 # results must come from x86_64-linux, like gtfs-jp-monitor's
     timeout-minutes: 330
     env:
-      JP_REF: 0d4d7f258e283cae5ee5ddc3de98eb389d49ed49 # gtfs-jp-monitor commit, also in pyproject.toml
-      PYTHONPATH: jp/src:src
+      PYTHONPATH: src
       DOWNLOAD_BUDGET: ${{ inputs.download_budget || '1500' }}
       LIMIT: ${{ inputs.limit || '400' }}
       REPORT_LIMIT: ${{ inputs.report_limit || '1000' }}
@@ -64,14 +64,6 @@ jobs:
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          persist-credentials: false
-
-      - name: Check out gtfs-jp-monitor
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: ttezer/gtfs-jp-monitor
-          ref: ${{ env.JP_REF }}
-          path: jp
           persist-credentials: false
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -152,7 +144,7 @@ jobs:
           release=$(python -c 'import json; print(json.load(open("analyzer.lock.json"))["release_tag"])')
           python -m gtfs_fr_monitor site-profile -o "$RUNNER_TEMP/site-profile.json"
           python -m gtfs_jp_monitor export-web --data-dir data --release-tag "$release" --profile auto \
-            --analyzer "$RUNNER_TEMP/analyzer/gtfs-analyzer" --template jp/web/prototype/index.html \
+            --analyzer "$RUNNER_TEMP/analyzer/gtfs-analyzer" --template web/prototype/index.html \
             --site-profile "$RUNNER_TEMP/site-profile.json" --site-url https://ttezer.github.io/gtfs-fr-monitor/ \
             --html _site/index.html --bundle-format gz --stages "$RUNNER_TEMP/stages.txt"
 

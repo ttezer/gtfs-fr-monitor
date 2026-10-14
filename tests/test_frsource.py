@@ -13,6 +13,7 @@ from gtfs_fr_monitor.frsource import FrSource, Settings
 from gtfs_fr_monitor.selection import SelectionConfig
 from gtfs_fr_monitor.state import load_state
 
+from .schema_support import HAVE_JSONSCHEMA, errors, validator
 from .test_fingerprint import write
 
 ORG, FEED, NUMERIC = "6703a201386f775e01f4269b", "82386", 1113
@@ -140,20 +141,8 @@ class FrSourceTest(unittest.TestCase):
         feeds, gens = load_catalog(self.data)
         self.assertEqual(feeds[(ORG, FEED)]["license"], {"raw": "lov2", "id": "etalab-2.0"})
         self.assertEqual(len(gens[(ORG, FEED)]), 2)
-        try:
-            import jsonschema  # noqa: F401
-        except ImportError:
+        if not HAVE_JSONSCHEMA:
             return
-        import importlib.util
-        here = Path(__file__).resolve().parents[1]  # gtfs-jp-monitor: jp/ in the workflow, a sibling checkout locally
-        helper = next((p for p in (here / "jp", here.parent / "GTFS-JP") if (p / "tests" / "schema_support.py").is_file()), None)
-        if helper is None:
-            return
-        helper = helper / "tests" / "schema_support.py"
-        spec = importlib.util.spec_from_file_location("jp_schema_support", helper)
-        support = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(support)
-        errors, validator = support.errors, support.validator
         doc = {"schema": "gtfs-jp-monitor-catalog-generations/1", "generations": list(gens[(ORG, FEED)].values())}
         self.assertEqual(errors(validator("catalog-generations.schema.json"), doc), [])
 

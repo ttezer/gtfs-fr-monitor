@@ -5,7 +5,7 @@ from dataclasses import replace
 from pathlib import Path
 
 from gtfs_fr_pipeline.catalog import sync_catalog
-from gtfs_fr_pipeline.gtfsdatajp import ApiError, FeedGenerations, FeedRecord, GenerationRecord
+from gtfs_fr_pipeline.source import ApiError, FeedGenerations, FeedRecord, GenerationRecord
 
 from .schema_support import HAVE_JSONSCHEMA, errors, validator
 
@@ -16,7 +16,7 @@ def uid(n: int) -> str:
     return f"{n:08x}-0000-4000-8000-000000000000"
 
 
-def feed_record(org=ORG, feed=FEED, license_raw="CC BY 4.0") -> FeedRecord:
+def feed_record(org=ORG, feed=FEED, license_raw="lov2") -> FeedRecord:
     return FeedRecord(org, feed, "永井運輸バス", "永井運輸", 10, license_raw, None, False, None, None, None, None, "")
 
 
@@ -43,7 +43,7 @@ class FakeClient:
         gens = tuple(self.generations.get((org_id, feed_id), ()))
         prev = sum(g.rid.startswith("prev_") for g in gens)
         nxt = sum(g.rid.startswith("next_") for g in gens)
-        return FeedGenerations(org_id, feed_id, "CC BY 4.0", prev, nxt, gens)
+        return FeedGenerations(org_id, feed_id, "lov2", prev, nxt, gens)
 
 
 def read(data_dir: Path, name: str) -> dict:
@@ -168,7 +168,7 @@ class CatalogSyncTest(unittest.TestCase):
     def test_rejected_list_entries_are_recorded_in_the_catalog(self):
         class Client(FakeClient):
             def list_feeds(self):
-                from gtfs_fr_pipeline.gtfsdatajp import Rejected
+                from gtfs_fr_pipeline.source import Rejected
                 return list(self.feeds), [Rejected("INVALID_FEED_ID", "../x", "y", None, "bad")]
         self.sync(Client([feed_record()], {(ORG, FEED): BASE_GENS}))
         self.assertEqual(read(self.data, "feeds.json")["rejected"], [{"code": "INVALID_FEED_ID", "feed_id": "y", "org_id": "../x"}])
@@ -187,7 +187,7 @@ class CatalogSyncTest(unittest.TestCase):
 
             def get_generations(self, org_id, feed_id):
                 archive = "https://transport-data-gouv-fr-resource-history-prod.cellar-c2.services.clever-cloud.com/1/1.zip"
-                return FeedGenerations(org_id, feed_id, "CC BY 4.0", None, None,
+                return FeedGenerations(org_id, feed_id, "lov2", None, None,
                                        tuple(replace(g, rid=None, gtfs_url=archive) for g in reversed(BASE_GENS)))
 
         result = self.sync(PlainSource())

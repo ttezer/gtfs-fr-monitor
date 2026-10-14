@@ -27,7 +27,7 @@ def uid(n: int) -> str:
 
 CATALOG_FEED = {
     "org_id": ORG, "feed_id": FEED, "feed_name": "永井運輸バス", "organization_name": "永井運輸", "feed_pref_id": 10,
-    "license": {"raw": "CC BY 4.0", "id": "CC-BY-4.0"}, "license_url": None, "is_discontinued": False,
+    "license": {"raw": "lov2", "id": "etalab-2.0"}, "license_url": None, "is_discontinued": False,
     "discontinued_date": None, "latest_feed_start_date": None, "latest_feed_end_date": None, "memo": "", "listed": True,
 }
 

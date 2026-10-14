@@ -22,7 +22,7 @@ GEN = GenerationMeta(
     published_at="2026-07-08T18:09:26.517446+09:00",
     from_date="2026-04-01",
     to_date="2027-03-31",
-    license="CC BY 4.0",
+    license="lov2",
 )
 ANALYZER = AnalyzerIdentity("0.14.0", "v0.14.0", "1" * 64, "linux", "x86_64", "auto")
 

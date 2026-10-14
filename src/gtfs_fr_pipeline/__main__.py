@@ -3,16 +3,13 @@
 from __future__ import annotations
 
 import argparse
-import collections
 import json
 import sys
 from pathlib import Path
 
-from .analyzer import PROFILES, AnalyzerBinary, Lock, install_release, pinned_release_for, sha256_file
-from .catalog import sync_catalog
-from .gtfsdatajp import BASE_URL, USER_AGENT, GtfsDataJpClient
+from .analyzer import PROFILES, Lock, install_release, sha256_file
+from .http import USER_AGENT
 from .ids import is_path_id
-from .pipeline import run_analysis
 
 DEFAULT_LOCK = Path(__file__).resolve().parents[2] / "analyzer.lock.json"
 
@@ -22,32 +19,6 @@ def _feed_key(text: str) -> tuple[str, str]:
     if not sep or not (is_path_id(org_id) and is_path_id(feed_id)):
         raise argparse.ArgumentTypeError(f"expected ORG_ID/FEED_ID, got {text!r}")
     return org_id, feed_id
-
-
-def _cmd_sync_catalog(args: argparse.Namespace) -> int:
-    client = GtfsDataJpClient(base_url=args.base_url, min_interval=args.min_interval)
-
-    def progress(index: int, total: int, key: tuple[str, str]) -> None:
-        if args.progress and index % 25 == 0:
-            print(f"[{index}/{total}] {key[0]}/{key[1]}", file=sys.stderr, flush=True)
-
-    result = sync_catalog(client, Path(args.data_dir), only=set(args.only) if args.only else None, progress=progress)
-    summary = {
-        "feeds_scanned": result.feeds_scanned,
-        "generations_seen": result.generations_seen,
-        "new_generations": len(result.new_generations),
-        "changed_files": result.changed_files,
-        "warnings_by_code": dict(sorted(collections.Counter(w["code"] for w in result.warnings).items())),
-        "requests": client.request_count,
-    }
-    print(json.dumps(summary, ensure_ascii=False, indent=2))
-    if args.events_out:
-        Path(args.events_out).write_text(json.dumps(result.events, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    if args.warnings_out:
-        Path(args.warnings_out).write_text(
-            json.dumps(result.warnings, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-        )
-    return 0
 
 
 def _fetch_release_archive(url: str, dest: Path, max_bytes: int = 64 * 1024 * 1024) -> None:
@@ -70,34 +41,6 @@ def _cmd_install_analyzer(args: argparse.Namespace) -> int:
         return 0
     binary = install_release(lock, Path(args.dest), _fetch_release_archive)
     print(json.dumps({"binary": str(binary), "release_tag": lock.release_tag, "sha256": sha256_file(binary)}, indent=2))
-    return 0
-
-
-def _cmd_analyze(args: argparse.Namespace) -> int:
-    from .store import analysis_key
-
-    current = Lock.load(Path(args.lock))
-    lock = Lock.load_next(Path(args.lock)) if args.next else current
-    if lock is None:
-        raise SystemExit(f"{args.lock} has no next release")
-    pinned = pinned_release_for(Path(args.analyzer), lock)
-    binary = AnalyzerBinary.inspect(Path(args.analyzer), pinned_release=pinned)
-    if binary.is_pinned and f"{binary.arch}-{binary.os}" != lock.production_platform and not args.allow_non_production_platform:
-        raise SystemExit(
-            f"pinned binary runs on {binary.arch}-{binary.os}; data-repository results must come from "
-            f"{lock.production_platform} (data-model §6.2). Use --allow-non-production-platform only for scratch data."
-        )
-    extra = json.loads(Path(args.extra_warnings).read_text(encoding="utf-8")) if args.extra_warnings else None
-    report = run_analysis(
-        Path(args.data_dir), binary, args.profile, trigger=args.trigger, limit=args.limit,
-        only=set(args.only) if args.only else None, timeout=args.timeout, extra_warnings=extra,
-        canonical_key=analysis_key(current.release_tag, args.profile),
-    )
-    print(json.dumps({
-        "run_id": report.run_id, "pinned": binary.is_pinned, "counts": report.counts, "processed": len(report.items),
-        "changed_files": len(report.changed_files), "run_file": report.run_file,
-        "warnings_by_code": dict(sorted(collections.Counter(w["code"] for w in report.warnings).items())),
-    }, ensure_ascii=False, indent=2))
     return 0
 
 
@@ -147,45 +90,6 @@ def _cmd_semantic_report(args: argparse.Namespace) -> int:
     print(json.dumps({"coverage": report["header"]["coverage"], "lines": report["summary"]["lines"],
                       "places": report["summary"]["places"]}, ensure_ascii=False, indent=2))
     return 0
-
-
-def _cmd_semantic_reports(args: argparse.Namespace) -> int:
-    from .changes import run_reports
-    from .store import analysis_key
-
-    key = analysis_key(Lock.load(Path(args.lock)).release_tag, args.profile)
-    run = run_reports(Path(args.data_dir), key, limit=args.limit, only=set(args.only) if args.only else None,
-                      max_seconds=args.max_minutes * 60 if args.max_minutes else None)
-    print(json.dumps({"analysis_key": key, "counts": dict(sorted(run.counts.items())),
-                      "failed": [i for i in run.items if i["action"] == "failed"][:50]}, ensure_ascii=False, indent=2))
-    return 0
-
-
-DEFAULT_SAMPLE = Path(__file__).resolve().parents[2] / "tests" / "sample" / "semantic-pairs.json"
-
-
-def _cmd_semantic_compare(args: argparse.Namespace) -> int:
-    from gtfs_fr_semantic.reader import Config
-
-    from .canonical import write_json
-    from .semantic_compare import apply_override, compare, load_sample, summary_text
-
-    pairs = load_sample(Path(args.sample))
-    if args.group:
-        pairs = [p for p in pairs if p["group"] in args.group]
-    if args.only:
-        pairs = [p for p in pairs if tuple(p["feed"].split("/")) in set(args.only)]
-    if args.limit:
-        pairs = pairs[:args.limit]
-    read = lambda path: json.loads(Path(path).read_text(encoding="utf-8")) if path else {}
-    default = Config.load()
-    base = apply_override(default, read(args.base))
-    candidate = apply_override(base, read(args.candidate))
-    result = compare(pairs, Path(args.zip_dir).expanduser(), base, candidate, jobs=args.jobs)
-    if args.output:
-        write_json(Path(args.output), result)
-    print(summary_text(result["summary"]))
-    return 1 if result["summary"]["errors"] else 0
 
 
 DEFAULT_TEMPLATE = Path(__file__).resolve().parents[2] / "web" / "prototype" / "index.html"
@@ -307,39 +211,12 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="gtfs_fr_pipeline")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    sync = sub.add_parser("sync-catalog", help="refresh catalog/feeds.json and catalog/generations.json")
-    sync.add_argument("--data-dir", required=True, help="root of the data repository checkout")
-    sync.add_argument("--only", type=_feed_key, action="append", metavar="ORG_ID/FEED_ID",
-                      help="fetch only these feeds (repeatable); other catalog entries are kept")
-    sync.add_argument("--base-url", default=BASE_URL)
-    sync.add_argument("--min-interval", type=float, default=1.0, help="seconds between API requests (default 1.0)")
-    sync.add_argument("--progress", action="store_true", help="print progress to stderr")
-    sync.add_argument("--warnings-out", help="write the full warning list to this JSON file")
-    sync.add_argument("--events-out", help="write one-off events (for the run record) to this JSON file")
-    sync.set_defaults(func=_cmd_sync_catalog)
-
     install = sub.add_parser("install-analyzer", help="download, verify and install the pinned analyzer release")
     install.add_argument("--dest", required=True, help="directory for the gtfs-analyzer binary")
     install.add_argument("--lock", default=str(DEFAULT_LOCK))
     install.add_argument("--next", action="store_true",
                          help="install the lock's next release instead (data-model §8.1); does nothing when there is none")
     install.set_defaults(func=_cmd_install_analyzer)
-
-    analyze = sub.add_parser("analyze", help="analyze generations that have no record for this analyzer and profile")
-    analyze.add_argument("--data-dir", required=True)
-    analyze.add_argument("--analyzer", required=True, help="path to the gtfs-analyzer binary")
-    analyze.add_argument("--profile", default="auto", choices=PROFILES,
-                         help="GTFS-JP profile, part of the analysis identity (default: auto)")
-    analyze.add_argument("--lock", default=str(DEFAULT_LOCK))
-    analyze.add_argument("--limit", type=int, help="analyze at most this many generations (newest first)")
-    analyze.add_argument("--only", type=_feed_key, action="append", metavar="ORG_ID/FEED_ID")
-    analyze.add_argument("--timeout", type=float, default=600, help="seconds per generation (default 600)")
-    analyze.add_argument("--trigger", choices=("schedule", "workflow_dispatch", "local"), default="local")
-    analyze.add_argument("--allow-non-production-platform", action="store_true")
-    analyze.add_argument("--extra-warnings", help="JSON list of catalog events to include in the run record")
-    analyze.add_argument("--next", action="store_true",
-                         help="analyze under the lock's next release; feed.json keeps the current one canonical (data-model §8.1)")
-    analyze.set_defaults(func=_cmd_analyze)
 
     raw = sub.add_parser("rawdiff", help="list every difference between two GTFS ZIP files (semantic engine, part 1)")
     raw.add_argument("--old", required=True)
@@ -357,27 +234,6 @@ def main(argv: list[str] | None = None) -> int:
     rep.add_argument("--analysis-key", help="e.g. v0.14.0__auto; links the validation diff when it exists")
     rep.add_argument("-o", "--output", required=True, help="output .report.json or .report.json.gz")
     rep.set_defaults(func=_cmd_semantic_report)
-
-    reps = sub.add_parser("semantic-reports", help="build missing change reports of consecutive publications into the data repository")
-    reps.add_argument("--data-dir", required=True)
-    reps.add_argument("--profile", default="auto", choices=PROFILES)
-    reps.add_argument("--lock", default=str(DEFAULT_LOCK), help="the analysis key uses the pinned release of this lock")
-    reps.add_argument("--limit", type=int, help="build at most this many reports (newest pairs first)")
-    reps.add_argument("--only", type=_feed_key, action="append", metavar="ORG_ID/FEED_ID")
-    reps.add_argument("--max-minutes", type=float, help="time budget: start no new report after this many minutes")
-    reps.set_defaults(func=_cmd_semantic_reports)
-
-    cmp = sub.add_parser("semantic-compare", help="compare two engine configurations on the sample pairs (docs/semantic/02-matching.md §8)")
-    cmp.add_argument("--sample", default=str(DEFAULT_SAMPLE))
-    cmp.add_argument("--zip-dir", required=True, help="local ZIP cache, outside the repositories; missing ZIPs are downloaded")
-    cmp.add_argument("--base", help="JSON override of the default configuration for the base run")
-    cmp.add_argument("--candidate", help="JSON override applied on top of the base for the candidate run")
-    cmp.add_argument("--group", action="append", help="only pairs of this sample group (repeatable)")
-    cmp.add_argument("--only", type=_feed_key, action="append", metavar="ORG_ID/FEED_ID")
-    cmp.add_argument("--limit", type=int)
-    cmp.add_argument("--jobs", type=int, default=1, help="pairs reported in parallel")
-    cmp.add_argument("-o", "--output", help="write the full result JSON here")
-    cmp.set_defaults(func=_cmd_semantic_compare)
 
     web = sub.add_parser("export-web", help="export data for the web page (prototype)")
     web.add_argument("--data-dir", required=True)

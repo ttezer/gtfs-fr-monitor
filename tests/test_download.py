@@ -7,7 +7,7 @@ from pathlib import Path
 
 from gtfs_fr_pipeline.download import DownloadError, _HttpsOnlyRedirects, download_zip
 
-URL = "https://api.gtfs-data.jp/v2/organizations/o/feeds/f/files/feed.zip?uid=17ab34e1-dcb8-4b2e-9cda-ae2b68f4c444"
+URL = "https://transport-data-gouv-fr-resource-history-prod.cellar-c2.services.clever-cloud.com/52917/52917.20261008.121742.708012.zip"
 SIGNED = "https://bucket.s3.amazonaws.com/feed.zip?AWSAccessKeyId=SECRETKEY&Signature=abc"
 
 
@@ -47,7 +47,7 @@ class DownloadTest(unittest.TestCase):
     def test_source_host_check(self):
         other = "https://files.example.org/feed.zip"
         with self.assertRaises(DownloadError):
-            download_zip(other, self.dest, opener=opener_for())  # default: gtfs-data.jp only
+            download_zip(other, self.dest, opener=opener_for())  # default: the archive host only
         result = download_zip(other, self.dest, opener=opener_for(), allowed=lambda u: u.startswith("https://files.example.org/"))
         self.assertEqual(result.size, 8)
         with self.assertRaises(DownloadError) as ctx:

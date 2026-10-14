@@ -1,20 +1,31 @@
 """Temporary download of one generation ZIP (data-model §1).
 
-The URL must pass the source's host check (gtfs-data.jp by default). On gtfs-data.jp the gtfs_url answers 302 to a signed S3 URL that carries temporary AWS credentials. That URL
-is followed but never logged, returned or stored. Only https redirects are accepted and the
-size is capped both by Content-Length and while streaming.
+The URL must pass a host check: by default transport.data.gouv.fr's archive of resource files,
+where every archived file has a permanent URL. Redirects are followed only to https and never
+logged, returned or stored. The size is capped both by Content-Length and while streaming.
 """
 
 from __future__ import annotations
 
 import hashlib
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 from typing import BinaryIO, Callable
 
-from .gtfsdatajp import USER_AGENT, is_api_download_url
+from .http import USER_AGENT
+
+HISTORY_HOST = "transport-data-gouv-fr-resource-history-prod.cellar-c2.services.clever-cloud.com"
+
+
+def is_history_url(url: object) -> bool:
+    """An archived resource file on transport.data.gouv.fr (permanent_url)."""
+    if not isinstance(url, str):
+        return False
+    parts = urllib.parse.urlsplit(url)
+    return parts.scheme == "https" and parts.hostname == HISTORY_HOST and parts.username is None
 
 DEFAULT_MAX_BYTES = 512 * 1024 * 1024
 CHUNK = 1 << 16
@@ -61,7 +72,7 @@ def download_zip(
     max_bytes: int = DEFAULT_MAX_BYTES,
     timeout: float = 300,
     opener: Opener = urllib_opener,
-    allowed: Callable[[object], bool] = is_api_download_url,
+    allowed: Callable[[object], bool] = is_history_url,
 ) -> Downloaded:
     """Stream `url` to `dest`, hashing on the way. `dest` is removed on any failure.
 

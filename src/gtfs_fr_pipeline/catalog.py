@@ -1,4 +1,4 @@
-"""Catalog sync: a feed source (gtfs-data.jp by default) -> catalog/feeds.json and catalog/generations/<org>/<feed>.json (data-model §7).
+"""Catalog sync: a feed source (source.CatalogSource) -> catalog/feeds.json and catalog/generations/<org>/<feed>.json (data-model §7).
 
 Generations are stored one file per feed so a new generation rewrites only that feed's file,
 not a multi-megabyte catalog (keeps the data repository history small).

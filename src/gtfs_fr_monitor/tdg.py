@@ -7,38 +7,17 @@ org_id = the dataset's datagouv_id, feed_id = the resource id.
 
 from __future__ import annotations
 
-import urllib.error
-import urllib.parse
-import urllib.request
 from dataclasses import dataclass
 from typing import Callable
 
-from gtfs_fr_pipeline.gtfsdatajp import GtfsDataJpClient, Transport
+from gtfs_fr_pipeline.download import HISTORY_HOST, is_history_url  # noqa: F401 (re-exported)
+from gtfs_fr_pipeline.http import USER_AGENT, JsonClient, Transport, urllib_transport  # noqa: F401 (USER_AGENT re-exported)
 from gtfs_fr_pipeline.ids import is_path_id
 from gtfs_fr_pipeline.source import ApiError, FeedRecord, Rejected
 
 from .regions import dataset_region
 
 BASE_URL = "https://transport.data.gouv.fr"
-HISTORY_HOST = "transport-data-gouv-fr-resource-history-prod.cellar-c2.services.clever-cloud.com"
-USER_AGENT = "gtfs-fr-monitor (+https://github.com/ttezer/gtfs-fr-monitor)"
-
-
-def urllib_transport(url: str, timeout: float) -> tuple[int, dict[str, str], bytes]:
-    request = urllib.request.Request(url, headers={"Accept": "application/json", "User-Agent": USER_AGENT})
-    try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            return response.status, dict(response.headers.items()), response.read()
-    except urllib.error.HTTPError as err:
-        return err.code, dict(err.headers.items()) if err.headers else {}, err.read() or b""
-
-
-def is_history_url(url: object) -> bool:
-    """Download host of archived resources (permanent_url)."""
-    if not isinstance(url, str):
-        return False
-    parts = urllib.parse.urlsplit(url)
-    return parts.scheme == "https" and parts.hostname == HISTORY_HOST and parts.username is None
 
 
 @dataclass(frozen=True)
@@ -76,10 +55,9 @@ def _region(dataset: dict) -> int | None:
 class TdgClient:
     def __init__(self, transport: Transport = urllib_transport, scope: Scope = Scope(),
                  sleep: Callable[[float], None] | None = None, **http_options) -> None:
-        # The gtfs-data.jp client's request loop (pacing, retries, TLS errors) is source-neutral.
         if sleep is not None:
             http_options["sleep"] = sleep
-        self._http = GtfsDataJpClient(base_url=BASE_URL, transport=transport, **http_options)
+        self._http = JsonClient(BASE_URL, transport=transport, **http_options)
         self.scope = scope
 
     @property

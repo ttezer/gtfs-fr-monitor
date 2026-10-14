@@ -1,7 +1,7 @@
 """What a feed source hands to the catalog sync (data-model §7).
 
-gtfs-data.jp is one source (gtfsdatajp.py); another publisher plugs in by returning the same
-records. Values are untrusted until the source has validated them: identifiers must already
+transport.data.gouv.fr is the source (gtfs_fr_monitor.frsource); another publisher would plug in by
+returning the same records. Values are untrusted until the source has validated them: identifiers must already
 pass ids.is_path_id / ids.is_uid, and download URLs must be checked against the source's host.
 """
 

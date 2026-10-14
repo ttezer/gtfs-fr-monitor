@@ -25,7 +25,7 @@ class LabelsTest(unittest.TestCase):
         html = PAGE.read_text(encoding="utf-8")
         short = re.findall(r"evtShort: (\{[^}]*\})", html)
         imp = re.findall(r"\n    imp: (\{[^}]*\})", html)
-        for lang, s, i in zip(("tr", "en", "fr", "ja"), short, imp, strict=True):
+        for lang, s, i in zip(("tr", "en", "fr"), short, imp, strict=True):
             with self.subTest(lang=lang):
                 self.assertEqual(list(js_object(s).items()), list(LABELS[lang]["evt"].items()))  # order too
                 self.assertEqual(js_object(i), LABELS[lang]["imp"])
@@ -53,14 +53,14 @@ class AtomTest(unittest.TestCase):
         return ET.fromstring(self.out[path])
 
     def test_files(self):
-        self.assertEqual(sorted(self.out), [f"atom/{lang}/{name}" for lang in ("en", "ja", "tr")
+        self.assertEqual(sorted(self.out), [f"atom/{lang}/{name}" for lang in ("en", "fr", "tr")
                                             for name in ("all.xml", f"{self.org}/{self.feed}.xml")])  # no file for a quiet feed
 
     def test_entries_newest_first_major_only(self):
         root = self.parse(f"atom/en/{self.org}/{self.feed}.xml")
         self.assertEqual(root.get("{http://www.w3.org/XML/1998/namespace}lang"), "en")
         entries = root.findall("a:entry", NS)
-        self.assertEqual([e.find("a:updated", NS).text for e in entries], ["2026-06-20T10:00:00+09:00", "2026-04-01T00:00:00+09:00"])
+        self.assertEqual([e.find("a:updated", NS).text for e in entries], ["2026-06-20T10:00:00+09:00", "2026-04-01T00:00:00+01:00"])
         self.assertEqual(root.find("a:updated", NS).text, "2026-06-20T10:00:00+09:00")
         first = entries[0]
         self.assertEqual(first.find("a:title", NS).text, "サンプルバス · 2026-07-01 · Major impact")

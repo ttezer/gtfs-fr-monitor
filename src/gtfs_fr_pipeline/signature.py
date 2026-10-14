@@ -13,7 +13,7 @@ as raw bytes. File paths are part of the signature.
 
 The same pass counts how often selected optional fields are filled (`fields`, data-model §15):
 rows per file and, per field, the rows with a value. For accessibility fields, where "0" means
-"no information", only the values 1 and 2 count. Stops outside the source's area (Japan by default),
+"no information", only the values 1 and 2 count. Stops outside France (FRANCE, or the given areas),
 and those whose latitude and longitude look swapped, are counted as well.
 """
 
@@ -35,8 +35,17 @@ FIELDS = {
     "trips.txt": ("wheelchair_accessible", "bikes_allowed", "trip_headsign", "trip_short_name", "shape_id"),
     "stop_times.txt": ("stop_headsign", "pickup_type", "drop_off_type", "timepoint"),
 }
-JAPAN = ((20.0, 46.0), (122.0, 154.0))  # latitude and longitude range of the stops check (data-model §15)
 Area = tuple[tuple[float, float], tuple[float, float]]  # ((lat min, lat max), (lon min, lon max))
+# Where French stops lie (data-model §15): metropolitan France with Corsica, then Guadeloupe,
+# Martinique, Guyane, La Réunion and Mayotte. Cross-border lines count their foreign stops as outside.
+FRANCE: tuple[Area, ...] = (
+    ((41.0, 51.5), (-5.5, 10.0)),
+    ((15.8, 16.6), (-61.9, -60.9)),
+    ((14.3, 14.95), (-61.3, -60.75)),
+    ((2.0, 6.0), (-54.7, -51.5)),
+    ((-21.5, -20.8), (55.1, 55.9)),
+    ((-13.1, -12.6), (44.9, 45.4)),
+)
 INFO_ONLY = frozenset({"wheelchair_boarding", "wheelchair_accessible", "bikes_allowed"})  # "0" = no information
 _MOD = 1 << 256
 _CHUNK = 1 << 20
@@ -50,7 +59,7 @@ def _raw(zf: zipfile.ZipFile, info: zipfile.ZipInfo) -> str:
     return h.hexdigest()
 
 
-def _place(lat: str, lon: str, areas: tuple[Area, ...] = (JAPAN,)) -> str | None:
+def _place(lat: str, lon: str, areas: tuple[Area, ...] = FRANCE) -> str | None:
     """"swapped" when latitude and longitude only fit an area the other way round, "outside" for
     other coordinates outside every area, None inside one or when not numeric."""
     try:
@@ -63,7 +72,7 @@ def _place(lat: str, lon: str, areas: tuple[Area, ...] = (JAPAN,)) -> str | None
     return "swapped" if inside(x, y) else "outside"
 
 
-def _csv(zf: zipfile.ZipFile, info: zipfile.ZipInfo, fields: dict | None = None, areas: tuple[Area, ...] = (JAPAN,)) -> str:
+def _csv(zf: zipfile.ZipFile, info: zipfile.ZipInfo, fields: dict | None = None, areas: tuple[Area, ...] = FRANCE) -> str:
     """Canonical hash; fills `fields` with {"rows", "filled": {field: rows with a value}} when the
     file has tracked fields."""
     with zf.open(info) as f:
@@ -97,12 +106,12 @@ def _csv(zf: zipfile.ZipFile, info: zipfile.ZipInfo, fields: dict | None = None,
     if fields is not None and info.filename in FIELDS:
         fields[info.filename] = {"rows": count, "filled": filled}
         if coords:
-            fields[info.filename]["coordinates"] = {"outside_japan": outside, "swapped": swapped}
+            fields[info.filename]["coordinates"] = {"outside_area": outside, "swapped": swapped}
     key = json.dumps([[header[i] for i in order], count, format(total, "064x")], ensure_ascii=False)
     return hashlib.sha256(key.encode("utf-8")).hexdigest()
 
 
-def _file(zf: zipfile.ZipFile, info: zipfile.ZipInfo, fields: dict, areas: tuple[Area, ...] = (JAPAN,)) -> dict:
+def _file(zf: zipfile.ZipFile, info: zipfile.ZipInfo, fields: dict, areas: tuple[Area, ...] = FRANCE) -> dict:
     if info.filename.lower().endswith(".txt"):
         try:
             return {"method": "canonical_csv", "hash": _csv(zf, info, fields, areas)}
@@ -111,7 +120,7 @@ def _file(zf: zipfile.ZipFile, info: zipfile.ZipInfo, fields: dict, areas: tuple
     return {"method": "raw_bytes", "hash": _raw(zf, info)}
 
 
-def content_signature(zip_path: Path, zip_sha256: str, areas: tuple[Area, ...] = (JAPAN,)) -> dict:
+def content_signature(zip_path: Path, zip_sha256: str, areas: tuple[Area, ...] = FRANCE) -> dict:
     """Signature record for a downloaded ZIP; `zip_sha256` ties it to the analysed bytes. `areas`:
     where the source's stops lie, for the outside count only (the signature does not depend on it)."""
     try:

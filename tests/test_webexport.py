@@ -43,7 +43,7 @@ class WebExportTest(unittest.TestCase):
         self.assertEqual(g["method"], feed["generations"][0]["method"])
         self.assertEqual(export["methods"][g["method"]]["gtfs_jp_profile"], "auto")
         self.assertEqual((g["rules"]["JPN_030"], export["rule_meta"]["JPN_030"]), (4, ["MEDIUM", "QUALITY"]))
-        self.assertEqual(export["rule_titles"], {"tr": {}, "en": {}, "ja": {}})
+        self.assertEqual(export["rule_titles"], {"fr": {}, "en": {}, "tr": {}})
         self.assertEqual((export["report_index"], files), ({}, {}))
         self.assertEqual(export["determinism"], {"same_content_pairs": 0, "different_results": 0, "examples": []})  # no content records
         status = export["status"]

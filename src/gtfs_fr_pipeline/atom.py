@@ -12,7 +12,7 @@ from __future__ import annotations
 from xml.etree import ElementTree as ET
 
 ATOM = "http://www.w3.org/2005/Atom"
-SITE_URL = "https://ttezer.github.io/gtfs-jp-monitor/"
+SITE_URL = "https://ttezer.github.io/gtfs-fr-monitor/"
 PER_FEED = 20
 ALL_FEEDS = 50
 MAX_LINES = 10
@@ -66,28 +66,16 @@ LABELS = {
             "STOP_RENAMED": "arrêt renommé", "STOP_MOVED": "arrêt déplacé",
         },
     },
-    "ja": {
-        "imp": {"major": "影響大", "minor": "影響小", "technical": "技術的"},
-        "evt": {
-            "ROUTE_ADDED": "新設路線", "ROUTE_DISCONTINUED": "廃止", "ROUTE_MERGED": "統合", "ROUTE_SPLIT": "分割",
-            "ROUTE_RESTRUCTURED": "再編", "ROUTE_RENAMED": "名称変更", "SERVICE_REDUCED": "減便",
-            "SERVICE_INCREASED": "増便", "PATTERN_EXTENDED": "経路延長", "PATTERN_SHORTENED": "経路短縮",
-            "STOP_SKIPPED": "停留所通過", "STOP_INSERTED": "停留所追加", "DETOUR_ADDED": "経由追加",
-            "DETOUR_REMOVED": "経由廃止", "DETOUR_SHIFTED": "経由便の入替", "STOPS_REORDERED": "停留所順序変更",
-            "TRIPS_MOVED": "他路線へ移管", "FIRST_LAST_CHANGED": "始発・終発変更", "TRIPS_RETIMED": "時刻変更",
-            "STOP_ADDED": "停留所新設", "STOP_REMOVED": "停留所廃止", "STOP_RENAMED": "停留所名変更", "STOP_MOVED": "停留所移設",
-        },
-    },
 }
-TITLE = {"tr": "GTFS-JP Monitor · önemli değişiklikler", "en": "GTFS-JP Monitor · major changes",
-         "ja": "GTFS-JP Monitor・主な変更"}
-STOPS = {"tr": "Duraklar", "en": "Stops", "fr": "Arrêts", "ja": "停留所"}
-LANGS = ("tr", "en", "ja")  # this site's feeds; the other labels serve other sites (langs=)
+TITLE = {"fr": "GTFS-FR Monitor · changements majeurs", "en": "GTFS-FR Monitor · major changes",
+         "tr": "GTFS-FR Monitor · önemli değişiklikler"}
+STOPS = {"tr": "Duraklar", "en": "Stops", "fr": "Arrêts"}
+LANGS = ("fr", "en", "tr")
 
 
 def _updated(pub: dict) -> str:
-    """When the new publication appeared: its published_at, else its start date (JST)."""
-    return pub.get("published_at") or f"{pub['from_date']}T00:00:00+09:00"
+    """When the new publication appeared: its published_at (Paris time), else its start date."""
+    return pub.get("published_at") or f"{pub['from_date']}T00:00:00+01:00"
 
 
 def _content(report: dict, lang: str) -> str:
@@ -133,7 +121,7 @@ def _feed(entries: list[tuple[dict, dict]], lang: str, title: str, self_href: st
 
 
 def build_atom(feeds: list[dict], files: dict[str, dict], site_url: str = SITE_URL, langs: list[str] | None = None,
-               titles: dict[str, str] | None = None, author: str = "GTFS-JP Monitor", tag: str = "gtfs-jp-monitor") -> dict[str, bytes]:
+               titles: dict[str, str] | None = None, author: str = "GTFS-FR Monitor", tag: str = "gtfs-fr-monitor") -> dict[str, bytes]:
     """{"atom/<lang>/<org_id>/<feed_id>.xml": bytes, "atom/<lang>/all.xml": bytes}: the reports with a
     major impact, newest first. A feed without such a report has no file. langs, titles, author and
     tag (part of the entry ids) come from another site's profile; the defaults are this site's."""

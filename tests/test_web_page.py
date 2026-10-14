@@ -20,6 +20,12 @@ class WebPageTest(unittest.TestCase):
     def test_one_export_placeholder(self):
         self.assertEqual(self.html.count("/*__EXPORT__*/"), 1)
 
+    def test_default_head(self):
+        head = self.html[self.html.index("<!--site-head-->"):self.html.index("<!--/site-head-->")]
+        self.assertIn("<title>GTFS-FR Monitor</title>", head)
+        self.assertNotIn("googletagmanager", self.html)  # no visitor analytics
+        self.assertEqual([lang for lang in ("fr", "en", "tr", "ja") if f'hreflang="{lang}"' in head], ["fr", "en", "tr"])
+
     def test_site_head(self):
         head = '<title>GTFS-FR Monitor</title>\n<link rel="alternate" type="application/atom+xml" hreflang="fr" href="atom/fr/all.xml">\n'
         page = webexport.apply_site_head(self.html, head)
@@ -45,7 +51,7 @@ console.log(JSON.stringify(out));"""
         self.assertEqual(proc.returncode, 0, proc.stderr)
         shapes = json.loads(proc.stdout)
         for name in ("T", "R"):
-            for lang in ("tr", "ja", "fr"):
+            for lang in ("tr", "fr"):
                 with self.subTest(table=name, lang=lang):
                     self.assertEqual(shapes[f"{name}.{lang}"], shapes[f"{name}.en"])
 
@@ -136,14 +142,14 @@ console.log(JSON.stringify(out));"""
         const st = { built_at: "2026-09-26T19:30:00Z", backlog: { unanalysed: 12, reports_pending: 0 } };
         console.log(JSON.stringify([
           statusNote(st, "en", built + 5 * 3600000), statusNote({ ...st, backlog: {} }, "tr", built + 40 * 3600000),
-          statusNote(st, "ja", built + 3 * 86400000), statusNote(null, "en", built)]));
+          statusNote(st, "fr", built + 3 * 86400000), statusNote(null, "en", built)]));
         """
         proc = subprocess.run(["node", "-e", source + cases], capture_output=True, text=True)
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertEqual(json.loads(proc.stdout), [
-            "Last updated 5 hours ago (2026-09-27 04:30 JST). 12 older publications waiting for analysis, 0 pairs waiting for a report.",
-            "Son güncelleme: 40 saat önce (2026-09-27 04:30 JST). Veriler 40 saattir güncellenmedi; günlük koşu aksamış olabilir.",
-            "最終更新：3日前（2026-09-27 04:30 JST）。 72時間更新がありません。毎日の実行が止まっている可能性があります。 解析待ちの古い公開 12 件、レポート待ちのペア 0 件。",
+            "Last updated 5 hours ago (2026-09-26 21:30 Paris time). 12 older publications waiting for analysis, 0 pairs waiting for a report.",
+            "Son güncelleme 40 saat önce (2026-09-26 21:30, Paris saati). Veriler 40 saattir güncellenmedi; günlük koşu aksamış olabilir.",
+            "Dernière mise à jour il y a 3 jours (2026-09-26 21:30, heure de Paris). Aucune mise à jour depuis 72 heures ; l'exécution quotidienne s'est peut-être arrêtée. 12 publications anciennes en attente d'analyse, 0 paires en attente de rapport.",
             "",
         ])
 

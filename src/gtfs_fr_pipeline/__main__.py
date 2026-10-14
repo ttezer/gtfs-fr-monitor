@@ -149,7 +149,7 @@ def _cmd_export_web(args: argparse.Namespace) -> int:
             old.unlink()
         atom = profile.get("atom") or {}
         for name, body in build_atom(export["feeds"], files, args.site_url, langs=atom.get("langs"), titles=atom.get("titles"),
-                                     author=atom.get("author", "GTFS-JP Monitor"), tag=atom.get("tag", "gtfs-jp-monitor")).items():
+                                     author=atom.get("author", "GTFS-FR Monitor"), tag=atom.get("tag", "gtfs-fr-monitor")).items():
             path = Path(args.html).parent / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(body)
@@ -248,7 +248,7 @@ def main(argv: list[str] | None = None) -> int:
                      help="report files next to the page: gzip (default) or plain JSON for hosts that do not serve .gz")
     web.add_argument("--stages", help="stage times written by the workflow, added to status.json")
     web.add_argument("--site-profile", help="JSON with another source's page profile, <head> block and Atom settings")
-    web.add_argument("--site-url", default="https://ttezer.github.io/gtfs-jp-monitor/",
+    web.add_argument("--site-url", default="https://ttezer.github.io/gtfs-fr-monitor/",
                      help="address the site is published at, for the links of the Atom feeds")
     web.set_defaults(func=_cmd_export_web)
 

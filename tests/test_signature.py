@@ -66,22 +66,23 @@ class SignatureTest(unittest.TestCase):
             "wheelchair_boarding": 1, "platform_code": 1, "stop_code": 0, "stop_desc": 0, "parent_station": 0}}})
         self.assertEqual(self.sig({"stops.txt": stops})["signature"], self.sig({"stops.txt": stops})["signature"])
 
-    def test_stops_outside_japan(self):
-        stops = "stop_id,stop_name,stop_lat,stop_lon\nA,x,35.1,135.1\nB,y,134.98,34.58\nC,z,0,0\nD,w,,\n"
+    def test_stops_outside_france(self):
+        # Paris inside, a Paris stop with latitude and longitude swapped, (0, 0) outside, an empty one ignored.
+        stops = "stop_id,stop_name,stop_lat,stop_lon\nA,x,48.85,2.35\nB,y,2.35,48.85\nC,z,0,0\nD,w,,\n"
         coords = self.sig({"stops.txt": stops})["fields"]["stops.txt"]["coordinates"]
-        self.assertEqual(coords, {"outside_japan": 1, "swapped": 1})
+        self.assertEqual(coords, {"outside_area": 1, "swapped": 1})
 
-    def test_another_source_area(self):
-        # Rennes, a swapped Rennes stop, Réunion; areas: metropolitan France and Réunion.
+    def test_overseas_and_other_areas(self):
+        # Rennes, a swapped Rennes stop, Réunion: France by default; other areas change the counts only.
         stops = "stop_id,stop_name,stop_lat,stop_lon\nA,x,48.11,-1.68\nB,y,-1.68,48.11\nC,z,-21.0,55.5\n"
         path = self.dir / "fr.zip"
         with zipfile.ZipFile(path, "w") as zf:
             zf.writestr("stops.txt", stops)
-        areas = (((41.0, 51.5), (-5.5, 10.0)), ((-21.5, -20.8), (55.2, 55.9)))
-        doc = content_signature(path, "0" * 64, areas)
-        self.assertEqual(doc["fields"]["stops.txt"]["coordinates"], {"outside_japan": 0, "swapped": 1})
-        self.assertEqual(content_signature(path, "0" * 64)["fields"]["stops.txt"]["coordinates"], {"outside_japan": 3, "swapped": 0})
-        self.assertEqual(doc["signature"], content_signature(path, "0" * 64)["signature"])  # areas change counts only
+        default = content_signature(path, "0" * 64)
+        self.assertEqual(default["fields"]["stops.txt"]["coordinates"], {"outside_area": 0, "swapped": 1})
+        elsewhere = content_signature(path, "0" * 64, (((20.0, 46.0), (122.0, 154.0)),))
+        self.assertEqual(elsewhere["fields"]["stops.txt"]["coordinates"], {"outside_area": 3, "swapped": 0})
+        self.assertEqual(default["signature"], elsewhere["signature"])
 
     def test_unreadable_zip_uses_the_zip_digest(self):
         doc = self.sig({}, raw=b"not a zip")

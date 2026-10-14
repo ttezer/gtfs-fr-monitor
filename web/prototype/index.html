@@ -1,66 +1,39 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!--site-head-->
-<title>GTFS-JP Monitor</title>
-<meta name="description" content="Feed quality, publication readiness and change history for gtfs-data.jp feeds">
-<link rel="alternate" type="application/atom+xml" hreflang="ja" title="GTFS-JP Monitor・主な変更" href="atom/ja/all.xml">
-<link rel="alternate" type="application/atom+xml" hreflang="en" title="GTFS-JP Monitor · major changes" href="atom/en/all.xml">
-<link rel="alternate" type="application/atom+xml" hreflang="tr" title="GTFS-JP Monitor · önemli değişiklikler" href="atom/tr/all.xml">
-<script>
-// Google Analytics (G-2R410JP5N2), loaded only on the published site so that local and preview
-// builds send no page views.
-if (location.hostname === "ttezer.github.io") {
-  window.dataLayer = window.dataLayer || [];
-  window.gtag = function () { dataLayer.push(arguments); };
-  gtag("js", new Date());
-  gtag("config", "G-2R410JP5N2");
-  const tag = document.createElement("script");
-  tag.async = true;
-  tag.src = "https://www.googletagmanager.com/gtag/js?id=G-2R410JP5N2";
-  document.head.appendChild(tag);
-}
-</script>
+<title>GTFS-FR Monitor</title>
+<meta name="description" content="Feed quality, publication readiness and change history for transport.data.gouv.fr feeds">
+<link rel="alternate" type="application/atom+xml" hreflang="fr" title="GTFS-FR Monitor · changements majeurs" href="atom/fr/all.xml">
+<link rel="alternate" type="application/atom+xml" hreflang="en" title="GTFS-FR Monitor · major changes" href="atom/en/all.xml">
+<link rel="alternate" type="application/atom+xml" hreflang="tr" title="GTFS-FR Monitor · önemli değişiklikler" href="atom/tr/all.xml">
 <!--/site-head-->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" integrity="sha512-h9FcoyWjHcOcmEVkxOfTLnmZFWIH0iZhZT1H2TbOq55xssQGEJHEaIm+PgoUaZbRvQTNTluNOEfb1ZRy6D3BOw==" crossorigin="anonymous" referrerpolicy="no-referrer">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" integrity="sha512-puJW3E/qXDqYp9IfhAI54BJEaWIfloJ7JWs7OeD5i6ruC9JZL1gERT1wjtwXFlh7CjE7ZJ+/vcRZRkIYIb6p4g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <style>
 :root {
-  --ground: #f3f6f5;
-  --surface: #ffffff;
-  --surface-2: #eef3f1;
-  --ink: #16201c;
-  --muted: #5b6a64;
-  --faint: #8a9892;
-  --hair: #dbe3e0;
-  --accent: #0f5c6e;
-  --accent-soft: #dcecef;
-  --good: #1f7a45;
-  --good-soft: #e0f2e7;
-  --warn: #9a6512;
-  --warn-soft: #fbefd9;
-  --bad: #b3372a;
-  --bad-soft: #f9e2de;
-  --spark: #0f5c6e;
-  --font: "Zen Kaku Gothic New", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
-  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --ground: #f6f7fb; --surface: #ffffff; --surface-2: #eef1f7; --ink: #111827; --muted: #4b5563; --faint: #6b7280;
+  --hair: #dfe3ec; --accent: #1d4ed8; --accent-soft: #e3e9ff; --link: #2563eb; --good: #15803d; --good-soft: #dcfce7;
+  --warn: #b45309; --warn-soft: #fef3c7; --bad: #b91c1c; --bad-soft: #fee2e2; --spark: #1d4ed8;
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
   --r: 8px;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --ground: #0f1513; --surface: #161f1c; --surface-2: #1c2723; --ink: #e5ede9; --muted: #9aa8a2;
-    --faint: #6f7d77; --hair: #2a3632; --accent: #5bb6c9; --accent-soft: #173a42; --good: #5cc98a;
-    --good-soft: #163324; --warn: #e2ad55; --warn-soft: #3a2c14; --bad: #ef7f71; --bad-soft: #3d1c18; --spark: #5bb6c9;
+    --ground: #0b1020; --surface: #121a2e; --surface-2: #1a2440; --ink: #e6e9f2; --muted: #a8b0c6; --faint: #8089a3;
+    --hair: #29355a; --accent: #8ab4ff; --accent-soft: #1c2a4d; --link: #7cc4ff; --good: #4ade80; --good-soft: #12301f;
+    --warn: #fbbf24; --warn-soft: #3a2a0c; --bad: #f87171; --bad-soft: #3b1414; --spark: #8ab4ff;
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --ground: #0f1513; --surface: #161f1c; --surface-2: #1c2723; --ink: #e5ede9; --muted: #9aa8a2;
-  --faint: #6f7d77; --hair: #2a3632; --accent: #5bb6c9; --accent-soft: #173a42; --good: #5cc98a;
-  --good-soft: #163324; --warn: #e2ad55; --warn-soft: #3a2c14; --bad: #ef7f71; --bad-soft: #3d1c18; --spark: #5bb6c9;
+  --ground: #0b1020; --surface: #121a2e; --surface-2: #1a2440; --ink: #e6e9f2; --muted: #a8b0c6; --faint: #8089a3;
+    --hair: #29355a; --accent: #8ab4ff; --accent-soft: #1c2a4d; --link: #7cc4ff; --good: #4ade80; --good-soft: #12301f;
+    --warn: #fbbf24; --warn-soft: #3a2a0c; --bad: #f87171; --bad-soft: #3b1414; --spark: #8ab4ff;
 }
 * { box-sizing: border-box; }
 body { background: var(--ground); color: var(--ink); font-family: var(--font); font-size: 14px; line-height: 1.5; }
@@ -266,13 +239,27 @@ details.periods > summary { font-weight: 600; margin: 8px 0; }
 #reports tr[data-place]:hover td { background: var(--surface-2); }
 details.other > summary { cursor: pointer; }
 .dval { font-family: var(--mono); font-size: 11px; word-break: break-all; }
+/* Desktop only: wide layout, no narrow mode (the rules above that stack the panel are overridden). */
+body { font-size: 15px; line-height: 1.55; min-width: 1200px; }
+.wrap { padding-inline: 32px; }
+.layout { grid-template-columns: minmax(0, 1fr) minmax(600px, 40%); }
+aside.panel { position: sticky; max-height: calc(100vh - 24px); overflow-y: auto; }
+.section p { max-width: 120ch; }
+#totals table { max-width: none; }
+table.grid { min-width: 1000px; }
+.pmap { height: 520px; } .pmap.netmap { height: 760px; } .pmap.lmap { height: 560px; }
+.fname { font-size: 15px; } nav.tabs button { font-size: 15px; } .field label { font-size: 12px; }
+@media (max-width: 1100px) {
+  .layout { grid-template-columns: minmax(0, 1fr) minmax(600px, 40%); }
+  aside.panel { position: sticky; max-height: calc(100vh - 24px); overflow-y: auto; }
+}
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 
 <div class="wrap">
   <header class="top">
     <div class="brand">
-      <h1 id="brand">GTFS-JP Monitor</h1>
+      <h1 id="brand">GTFS-FR Monitor</h1>
       <p id="tagline"></p>
     </div>
     <div class="tools">
@@ -286,7 +273,6 @@ details.other > summary { cursor: pointer; }
     <button type="button" role="tab" data-tab="overview"></button>
     <button type="button" role="tab" data-tab="history"></button>
     <button type="button" role="tab" data-tab="reports"></button>
-    <button type="button" role="tab" data-tab="gtfsjp"></button>
   </nav>
 
   <section id="tab-overview">
@@ -313,7 +299,6 @@ details.other > summary { cursor: pointer; }
     <div class="section" id="history"></div>
   </section>
   <section id="tab-reports" hidden><div class="section" id="reports"></div></section>
-  <section id="tab-gtfsjp" hidden><div class="section" id="gtfsjp"></div></section>
 
   <footer id="footer"></footer>
 </div>
@@ -324,11 +309,11 @@ details.other > summary { cursor: pointer; }
 "use strict";
 const DATA = JSON.parse(document.getElementById("export-data").textContent);
 // The site profile (data-model §10.4): another source's languages, regions, map tiles and texts.
-// Every field is optional; without it the page is the gtfs-data.jp site.
+// Every field is optional; without it the page shows the French defaults.
 const SITE = DATA.site || {};
-const LANGS = SITE.langs || ["tr", "en", "ja"], LOCALE = SITE.locale || "ja", TIME_ZONE = SITE.time_zone || "Asia/Tokyo";
-// Feed history columns; a source without gtfs-data.jp positions, JP files or notes hides them (site.hide).
-const HIST_COLS = ["period", "published", "status", "publish", "overall", "rid", "jpFiles", "memo"].filter(c => !(SITE.hide || []).includes(c));
+const LANGS = SITE.langs || ["fr", "en", "tr"], LOCALE = SITE.locale || "fr", TIME_ZONE = SITE.time_zone || "Europe/Paris";
+// Feed history columns; the API position, GTFS-JP files and notes are hidden unless a site lists other ones (site.hide).
+const HIST_COLS = ["period", "published", "status", "publish", "overall", "rid", "jpFiles", "memo"].filter(c => !(SITE.hide || ["rid", "jpFiles", "memo"]).includes(c));
 // Links from the site profile (data-model §10.4); only https addresses are shown.
 const safeLink = l => l && typeof l.url === "string" && l.url.startsWith("https://") && typeof l.label === "string";
 const linkHtml = l => `<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label)} ↗</a>`;
@@ -338,19 +323,18 @@ const feedLinks = f => {
   const own = (SITE.feed_links || []).map(l => ({ label: l.label, url: typeof l.url === "string" ? fill(l.url) : "" }));
   return [...own, ...((SITE.feed_extra || {})[`${f.org_id}/${f.feed_id}`] || [])].filter(safeLink).map(linkHtml).join(" · ");
 };
-const TILES = SITE.tiles || { url: "https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png", label: "地理院タイル", link: "https://maps.gsi.go.jp/development/ichiran.html" };
+const TILES = SITE.tiles || { url: "https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&STYLE=normal&TILEMATRIXSET=PM&FORMAT=image/png&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}", label: "Plan IGN", link: "https://geoservices.ign.fr/services-geoplateforme-diffusion" };
 // The export keeps only rule counts per publication (rule_meta holds severity and class); expand
 // them back to [count, severity, class] once, so the rest of the page reads them as before.
 if (DATA.rule_meta) for (const f of DATA.feeds) for (const g of f.generations) {
   for (const [id, v] of Object.entries(g.rules || {})) if (typeof v === "number") g.rules[id] = [v, ...DATA.rule_meta[id]];
 }
 
-const PREFS = [["北海道","Hokkaido"],["青森県","Aomori"],["岩手県","Iwate"],["宮城県","Miyagi"],["秋田県","Akita"],["山形県","Yamagata"],["福島県","Fukushima"],["茨城県","Ibaraki"],["栃木県","Tochigi"],["群馬県","Gunma"],["埼玉県","Saitama"],["千葉県","Chiba"],["東京都","Tokyo"],["神奈川県","Kanagawa"],["新潟県","Niigata"],["富山県","Toyama"],["石川県","Ishikawa"],["福井県","Fukui"],["山梨県","Yamanashi"],["長野県","Nagano"],["岐阜県","Gifu"],["静岡県","Shizuoka"],["愛知県","Aichi"],["三重県","Mie"],["滋賀県","Shiga"],["京都府","Kyoto"],["大阪府","Osaka"],["兵庫県","Hyogo"],["奈良県","Nara"],["和歌山県","Wakayama"],["鳥取県","Tottori"],["島根県","Shimane"],["岡山県","Okayama"],["広島県","Hiroshima"],["山口県","Yamaguchi"],["徳島県","Tokushima"],["香川県","Kagawa"],["愛媛県","Ehime"],["高知県","Kochi"],["福岡県","Fukuoka"],["佐賀県","Saga"],["長崎県","Nagasaki"],["熊本県","Kumamoto"],["大分県","Oita"],["宮崎県","Miyazaki"],["鹿児島県","Kagoshima"],["沖縄県","Okinawa"]];
 
 const T = {
   tr: {
-    tagline: "Feed kalitesi, yayına hazırlık ve değişiklik geçmişi",
-    updated: (ago, when) => `Son güncelleme: ${ago} önce (${when} JST).`,
+    tagline: "transport.data.gouv.fr feed'lerinin kalitesi, yayına hazırlığı ve değişiklik geçmişi",
+    updated: (ago, when) => `Son güncelleme ${ago} önce (${when}, Paris saati).`,
     stale: h => `Veriler ${h} saattir güncellenmedi; günlük koşu aksamış olabilir.`,
     backlog: (a, r) => `Analiz bekleyen ${a} eski yayın, rapor bekleyen ${r} çift.`,
     ago: { m: n => `${n} dakika`, h: n => `${n} saat`, d: n => `${n} gün` },
@@ -364,12 +348,12 @@ const T = {
     mNote: (from, to, key, eng) => `${from} – ${to} · ${key} · motor ${eng}. Oranlar sınıfı bilinen çiftler üzerinden; bilinmeyen çiftler tahmin edilmez.`,
     sourceChanged: d => `Bu yayının dosyası kaynakta ilk analizden sonra değiştirildi; sonuçlar yeni dosyaya göredir (yayın tarihi ${d}).`,
     s6: "Veri alanları", fieldCols: ["Alan", "Eski", "Yeni", "Δ"],
-    coordWarn: (side, o, w) => `${side}da ${o + w} durak Japonya sınırlarının dışında${w ? ` (${w} tanesinde enlem ve boylam yer değiştirmiş görünüyor)` : ""}; bu durakların hatları haritada ve güzergâh karşılaştırmasında yanlış görünebilir.`,
+    coordWarn: (side, o, w) => `${side}: ${o + w} durak Fransa topraklarının dışında${w ? ` (${w} tanesinde enlem ve boylam yer değiştirmiş görünüyor)` : ""}; bu durakların hatları haritada ve güzergâh karşılaştırmasında yanlış görünebilir.`,
     fieldNone: "Bu yayınlar için alan doluluğu henüz ölçülmedi; sayfada görünen yayınlar gece gece dolduruluyor.",
     fieldNote: "Dolu satırların yüzdesi. Tekerlekli sandalye ve bisiklet alanlarında yalnız 1 ve 2 değerleri sayılır (0 = bilgi yok).",
-    notice: (f, g, rel, prof) => `<b>Önizleme.</b> ${f} feed, ${g} yayın; GTFS Analyzer ${rel} (${prof} profili). Yayınlar en yeniden eskiye doğru analiz ediliyor; henüz analiz edilmemiş eski yayınlar her gün arka planda ekleniyor. Semantic değişiklik raporları her gün en yeni yayın çiftlerinden başlayarak ekleniyor (Diff Raporları sekmesi).`,
-    overview: "Genel Bakış", history: "Feed Geçmişi", reports: "Diff Raporları", gtfsjp: "GTFS-JP",
-    search: "Feed ara", prefecture: "İl", readiness: "Yayın durumu", sort: "Sırala", all: "Tümü",
+    notice: (f, g, rel) => `<b>Önizleme.</b> ${f} feed, ${g} yayın; <a href="https://ttezer.github.io/gtfs-analyzer/" target="_blank" rel="noopener">GTFS Analyzer</a> ${rel} ile analiz edildi. Bir yayın, önümüzdeki günlerin seferleri değiştiğinde sayılır; tarifesi değişmeyen günlük yeniden yayınlar sayılmaz. En büyük feed'ler (stop_times.txt 100 MB ve üstü) henüz izlenmiyor.`,
+    overview: "Genel Bakış", history: "Feed Geçmişi", reports: "Diff Raporları",
+    search: "Feed ara", prefecture: "Bölge", readiness: "Yayın durumu", sort: "Sırala", all: "Tümü",
     ready: "Yayınlanmaya hazır", notReady: "Hazır değil", merge: "Eşdeğer yayınları birleştir",
     sortRecent: "Son yayın (yeniden eskiye)", sortName: "Ad", sortLow: "Overall (düşükten)", sortHigh: "Overall (yüksekten)",
     feeds: n => `Toplam ${n} feed`, feed: "Feed",
@@ -390,8 +374,7 @@ const T = {
     showSame: n => `Değişmeyen ${n} kuralı göster`, hideSame: "Değişmeyenleri gizle", noRuleChange: "Kural sayılarında değişiklik yok.",
     histIntro: "Seçili feed'in tüm yayınları, eskiden yeniye. Birleştirme açıkken içeriği aynı ardışık yayınlar tek satırda gösterilir.",
     period: "Geçerlilik", published: "Yayın", memo: "Not", status: "Durum", rid: "API konumu",
-    gtfsjpText: p => `<p>Analizler GTFS Analyzer ile <b>${p}</b> profiliyle yapıldı. Profil seçilebilir (auto, v3, v4); farklı profille yapılan analizler ayrı tutulur ve birbiriyle karşılaştırılmaz.</p><p>Doğrulama tarihi her yayının geçerlilik başlangıcıdır (from_date); böylece her yayın hizmete girdiği gündeki hâliyle değerlendirilir.</p>`,
-    footer: "Veri kaynağı: gtfs-data.jp ve ilgili işletmeciler. Skorlar ve değişiklik raporları bu verilerden türetilmiştir; her feed'in lisansı feed panelinde yazar. Feed ve durak adları kaynaktaki hâliyle gösterilir. Harita: 地理院タイル. Skor rengi eşikleri geçicidir (≥95 / ≥85). Ziyaret istatistikleri için Google Analytics kullanılır (çerezler; veriler Google'a gönderilir).",
+    footer: "Veri kaynağı: transport.data.gouv.fr ve veri üreticileri. Skorlar ve değişiklik raporları bu verilerden türetilmiştir; her feed'in lisansı feed panelinde yazar (Licence Ouverte, ODbL…). Feed ve durak adları kaynaktaki hâliyle gösterilir. Harita: Plan IGN (IGN-F / Géoplateforme). Resmî tatiller: calendrier.api.gouv.fr (metropol). Ziyaret istatistiği tutulmaz.",
     mergeNote: "Birleştirilmiş yayınlar \"×N yayın\" ile gösterilir: analiz özeti (skorlar, metrikler, kural ve dosya satır sayıları) bir öncekiyle birebir aynı olan yayınlar tek sütunda toplanır. ZIP dosyaları farklı olabilir; hiçbir yayın silinmez, tamamı Feed Geçmişi sekmesinde listelenir.",
     dataUpdated: "±0 skor · veri güncellendi", validity: "Geçerlilik",
     organization: "Kurum", feedPick: "Feed", showDisc: "Kapanan feed'leri göster", discChip: d => `Kapandı: ${d}`, orgCount: (n, a) => `${n} feed · ${a} aktif`, scopeNote: (dr, list) => `Kapsam değişikliği olası: hat sayısı ${dr} değişti ve kurumun şu feed'leri bu dönemde kapandı: ${list}. Hatlar feed'ler arasında taşınmış olabilir; bu bir tahmindir.`,
@@ -399,8 +382,8 @@ const T = {
     license: "Lisans", org: "Kurum", openFeed: "Feed'e git", links: "Bağlantılar"
   },
   en: {
-    tagline: "Feed quality, publication readiness and change history",
-    updated: (ago, when) => `Last updated ${ago} ago (${when} JST).`,
+    tagline: "Feed quality, publication readiness and change history for transport.data.gouv.fr feeds",
+    updated: (ago, when) => `Last updated ${ago} ago (${when} Paris time).`,
     stale: h => `No update for ${h} hours; the daily run may have stopped.`,
     backlog: (a, r) => `${a} older publications waiting for analysis, ${r} pairs waiting for a report.`,
     ago: { m: n => `${n} minute${n === 1 ? "" : "s"}`, h: n => `${n} hour${n === 1 ? "" : "s"}`, d: n => `${n} day${n === 1 ? "" : "s"}` },
@@ -414,12 +397,12 @@ const T = {
     mNote: (from, to, key, eng) => `${from} – ${to} · ${key} · engine ${eng}. Ratios are over pairs with a known class; unknown pairs are not guessed.`,
     sourceChanged: d => `The file of this publication was replaced at the source after its first analysis; the results are for the new file (published ${d}).`,
     s6: "Data fields", fieldCols: ["Field", "Old", "New", "Δ"],
-    coordWarn: (side, o, w) => `The ${side.toLowerCase()} has ${o + w} stops outside Japan${w ? ` (${w} with latitude and longitude apparently swapped)` : ""}; their lines may look wrong on maps and in route comparisons.`,
+    coordWarn: (side, o, w) => `The ${side.toLowerCase()} has ${o + w} stops outside French territory${w ? ` (${w} with latitude and longitude apparently swapped)` : ""}; their lines may look wrong on maps and in route comparisons.`,
     fieldNone: "Field filling has not been measured for these publications yet; the publications the page shows are filled in night by night.",
     fieldNote: "Share of rows with a value. For wheelchair and bike fields only 1 and 2 count (0 = no information).",
-    notice: (f, g, rel, prof) => `<b>Preview.</b> ${f} feeds, ${g} publications; GTFS Analyzer ${rel} (${prof} profile). Publications are analysed newest first; older ones not analysed yet are added daily in the background. Semantic change reports are added daily, newest publication pairs first (Diff reports tab).`,
-    overview: "Overview", history: "Feed history", reports: "Diff reports", gtfsjp: "GTFS-JP",
-    search: "Search feeds", prefecture: "Prefecture", readiness: "Readiness", sort: "Sort", all: "All",
+    notice: (f, g, rel) => `<b>Preview.</b> ${f} feeds, ${g} publications, analysed with <a href="https://ttezer.github.io/gtfs-analyzer/" target="_blank" rel="noopener">GTFS Analyzer</a> ${rel}. A publication counts when the trips of the days ahead change; daily republications without a timetable change do not. The largest feeds (stop_times.txt of 100 MB or more) are not monitored yet.`,
+    overview: "Overview", history: "Feed history", reports: "Diff reports",
+    search: "Search feeds", prefecture: "Region", readiness: "Readiness", sort: "Sort", all: "All",
     ready: "Ready to publish", notReady: "Not ready", merge: "Merge equivalent publications",
     sortRecent: "Latest publication", sortName: "Name", sortLow: "Overall (lowest)", sortHigh: "Overall (highest)",
     feeds: n => `${n} feeds`, feed: "Feed",
@@ -440,8 +423,7 @@ const T = {
     showSame: n => `Show ${n} unchanged rules`, hideSame: "Hide unchanged", noRuleChange: "No change in rule counts.",
     histIntro: "All publications of the selected feed, oldest first. With merging on, consecutive publications with identical content share one row.",
     period: "Validity", published: "Published", memo: "Note", status: "Status", rid: "API position",
-    gtfsjpText: p => `<p>Analyses were made with GTFS Analyzer using the <b>${p}</b> profile. The profile is selectable (auto, v3, v4); analyses with different profiles are kept apart and never compared.</p><p>Each publication is validated as of its first valid day (from_date), so it is judged as it was when it entered service.</p>`,
-    footer: "Data: gtfs-data.jp and the transit operators. Scores and change reports are derived from these data; each feed's license is shown in its panel. Feed and stop names are shown as published. Map: 地理院タイル (GSI Tiles). Score colour thresholds are provisional (≥95 / ≥85). Visits are measured with Google Analytics (cookies; data is sent to Google).",
+    footer: "Data: transport.data.gouv.fr and the data producers. Scores and change reports are derived from these data; each feed's licence is shown in its panel (Licence Ouverte, ODbL…). Feed and stop names are shown as published. Map: Plan IGN (IGN-F / Géoplateforme). Public holidays: calendrier.api.gouv.fr (metropolitan France). No visitor analytics.",
     mergeNote: "Merged publications are marked \"×N publications\": publications whose analysis summary (scores, metrics, rule and file row counts) is identical to the previous one share a column. Their ZIP files may differ; none is removed, and all are listed under Feed history.",
     dataUpdated: "±0 score · data updated", validity: "Validity",
     organization: "Organisation", feedPick: "Feed", showDisc: "Show discontinued feeds", discChip: d => `Discontinued: ${d}`, orgCount: (n, a) => `${n} feeds · ${a} active`, scopeNote: (dr, list) => `Possible change of scope: the route count changed by ${dr} and these feeds of the same organisation ended in this period: ${list}. Routes may have moved between feeds; this is an estimate.`,
@@ -449,8 +431,8 @@ const T = {
     license: "License", org: "Organisation", openFeed: "Open feed", links: "Links"
   },
   fr: {
-    tagline: "Qualité des flux, préparation à la publication et historique des changements",
-    updated: (ago, when) => `Dernière mise à jour il y a ${ago} (${when} JST).`,
+    tagline: "Qualité, préparation à la publication et historique des changements des flux de transport.data.gouv.fr",
+    updated: (ago, when) => `Dernière mise à jour il y a ${ago} (${when}, heure de Paris).`,
     stale: h => `Aucune mise à jour depuis ${h} heures ; l'exécution quotidienne s'est peut-être arrêtée.`,
     backlog: (a, r) => `${a} publications anciennes en attente d'analyse, ${r} paires en attente de rapport.`,
     ago: { m: n => `${n} minute${n > 1 ? "s" : ""}`, h: n => `${n} heure${n > 1 ? "s" : ""}`, d: n => `${n} jour${n > 1 ? "s" : ""}` },
@@ -464,12 +446,12 @@ const T = {
     mNote: (from, to, key, eng) => `${from} – ${to} · ${key} · moteur ${eng}. Les proportions portent sur les paires de classe connue ; les paires inconnues ne sont pas devinées.`,
     sourceChanged: d => `Le fichier de cette publication a été remplacé à la source après sa première analyse ; les résultats portent sur le nouveau fichier (publié le ${d}).`,
     s6: "Champs de données", fieldCols: ["Champ", "Ancien", "Nouveau", "Δ"],
-    coordWarn: (side, o, w) => `${side} : ${o + w} arrêts hors du Japon${w ? ` (dont ${w} avec latitude et longitude apparemment inversées)` : ""} ; leurs lignes peuvent s'afficher mal sur les cartes et dans les comparaisons d'itinéraires.`,
+    coordWarn: (side, o, w) => `${side} : ${o + w} arrêts hors du territoire français${w ? ` (dont ${w} avec latitude et longitude apparemment inversées)` : ""} ; leurs lignes peuvent s'afficher mal sur les cartes et dans les comparaisons d'itinéraires.`,
     fieldNone: "Le remplissage des champs n'a pas encore été mesuré pour ces publications ; les publications affichées sont complétées nuit après nuit.",
     fieldNote: "Part des lignes ayant une valeur. Pour les champs fauteuil roulant et vélo, seuls 1 et 2 comptent (0 = pas d'information).",
-    notice: (f, g, rel, prof) => `<b>Aperçu.</b> ${f} flux, ${g} publications ; GTFS Analyzer ${rel} (profil ${prof}). Les publications sont analysées de la plus récente à la plus ancienne ; celles qui ne le sont pas encore sont ajoutées chaque jour en arrière-plan. Les rapports de changements sémantiques sont ajoutés chaque jour, en commençant par les paires les plus récentes (onglet Rapports de différences).`,
-    overview: "Vue d'ensemble", history: "Historique du flux", reports: "Rapports de différences", gtfsjp: "GTFS-JP",
-    search: "Rechercher un flux", prefecture: "Préfecture", readiness: "Préparation", sort: "Tri", all: "Tous",
+    notice: (f, g, rel) => `<b>Aperçu.</b> ${f} flux, ${g} publications, analysés avec <a href="https://ttezer.github.io/gtfs-analyzer/" target="_blank" rel="noopener">GTFS Analyzer</a> ${rel}. Une publication est retenue quand les courses des jours à venir changent ; les republications quotidiennes sans changement d'horaire ne comptent pas. Les plus grands flux (stop_times.txt de 100 Mo ou plus) ne sont pas encore suivis.`,
+    overview: "Vue d'ensemble", history: "Historique du flux", reports: "Rapports de différences",
+    search: "Rechercher un flux", prefecture: "Région", readiness: "Préparation", sort: "Tri", all: "Tous",
     ready: "Prêt à publier", notReady: "Pas prêt", merge: "Fusionner les publications équivalentes",
     sortRecent: "Dernière publication", sortName: "Nom", sortLow: "Global (le plus bas)", sortHigh: "Global (le plus haut)",
     feeds: n => `${n} flux`, feed: "Flux",
@@ -490,64 +472,13 @@ const T = {
     showSame: n => `Afficher ${n} règles inchangées`, hideSame: "Masquer les inchangées", noRuleChange: "Aucun changement dans le nombre de règles.",
     histIntro: "Toutes les publications du flux sélectionné, de la plus ancienne à la plus récente. Avec la fusion activée, les publications consécutives au contenu identique partagent une ligne.",
     period: "Validité", published: "Publiée", memo: "Note", status: "Statut", rid: "Position API",
-    gtfsjpText: p => `<p>Les analyses ont été faites avec GTFS Analyzer et le profil <b>${p}</b>. Le profil est au choix (auto, v3, v4) ; les analyses faites avec des profils différents sont conservées séparément et ne sont jamais comparées.</p><p>Chaque publication est validée à son premier jour de validité (from_date), afin d'être jugée telle qu'elle était à sa mise en service.</p>`,
-    footer: "Données : gtfs-data.jp et les exploitants. Les scores et rapports de changements sont dérivés de ces données ; la licence de chaque flux figure dans son panneau. Les noms de flux et d'arrêts sont affichés tels que publiés. Carte : 地理院タイル (tuiles GSI). Les seuils de couleur des scores sont provisoires (≥95 / ≥85). Les visites sont mesurées avec Google Analytics (cookies ; les données sont envoyées à Google).",
+    footer: "Données : transport.data.gouv.fr et les producteurs. Les scores et rapports de changements sont dérivés de ces données ; la licence de chaque flux figure dans son panneau (Licence Ouverte, ODbL…). Les noms de flux et d'arrêts sont affichés tels que publiés. Carte : Plan IGN (IGN-F / Géoplateforme). Jours fériés : calendrier.api.gouv.fr (métropole). Aucune mesure d'audience.",
     mergeNote: "Les publications fusionnées sont marquées « ×N publications » : les publications dont le résumé d'analyse (scores, métriques, nombres de règles et de lignes par fichier) est identique au précédent partagent une colonne. Leurs fichiers ZIP peuvent différer ; aucun n'est supprimé, et tous figurent dans l'historique du flux.",
     dataUpdated: "±0 score · données mises à jour", validity: "Validité",
     organization: "Organisation", feedPick: "Flux", showDisc: "Afficher les flux arrêtés", discChip: d => `Arrêté : ${d}`, orgCount: (n, a) => `${n} flux · ${a} actifs`, scopeNote: (dr, list) => `Changement de périmètre possible : le nombre de lignes a varié de ${dr} et ces flux de la même organisation ont pris fin sur cette période : ${list}. Des lignes ont pu passer d'un flux à l'autre ; il s'agit d'une estimation.`,
     compare: "Comparer", compareHint: "Cliquez sur une publication plus ancienne du tableau pour la comparer à l'actuelle, sur Actuelle pour la comparer à la précédente, ou sur une cellule Δ pour comparer deux voisines. Vous pouvez aussi en choisir deux ci-dessous.", clickGen: "Comparer cette publication à l'actuelle", clickCurrent: "Comparer la publication actuelle à la précédente", clickDelta: "Comparer ces deux publications",
     license: "Licence", org: "Organisation", openFeed: "Voir le flux", links: "Liens"
   },
-  ja: {
-    tagline: "フィードの品質・公開準備・変更履歴",
-    updated: (ago, when) => `最終更新：${ago}前（${when} JST）。`,
-    stale: h => `${h}時間更新がありません。毎日の実行が止まっている可能性があります。`,
-    backlog: (a, r) => `解析待ちの古い公開 ${a} 件、レポート待ちのペア ${r} 件。`,
-    ago: { m: n => `${n}分`, h: n => `${n}時間`, d: n => `${n}日` },
-    linkMissing: "リンクのフィードまたは公開はこのページにありません。リンクは無視されました。",
-    s5: "過去365日", mTotal: "過去365日・全フィード",
-    mRows: { pubs: "公開（30日あたり）", meaningful: "意味のある更新（30日あたり）", pairs: "ペア", coverage: "分類が判明したペア（カバー率）",
-             equivalent: "同等の再公開", technical: "技術的変更のみ", regressions: "検証結果の悪化",
-             unclassified: "未分類の差分", availability: "取得可能な公開", churn: "IDが振り直されたペア" },
-    mPairs: (m, t, e, u, em, et) => `意味のある変更 ${m} · 技術的 ${t} · 同等 ${e} · 不明 ${u}${em + et ? ` · 推定 意味あり ${em}・技術的 ${et}` : ""}`, mExact: "確定カバー率（レポートあり）",
-    mOf: (n, d) => `${d}ペア中 ${n}`,
-    mNote: (from, to, key, eng) => `${from} – ${to} · ${key} · エンジン ${eng}。割合は分類が判明したペアに対する値で、不明なペアは推定しません。`,
-    sourceChanged: d => `この公開のファイルは最初の解析の後に提供元で差し替えられました。結果は新しいファイルに基づきます（公開日 ${d}）。`,
-    s6: "データ項目", fieldCols: ["項目", "旧", "新", "Δ"],
-    coordWarn: (side, o, w) => `${side}に日本の範囲外の停留所が ${o + w} 件あります${w ? `（うち ${w} 件は緯度と経度が入れ替わっている可能性）` : ""}。地図や経路比較で該当路線が正しく表示されない場合があります。`,
-    fieldNone: "これらの公開の項目充足率はまだ測定されていません。ページに表示される公開から毎晩順に測定しています。",
-    fieldNote: "値が入っている行の割合。車椅子・自転車の項目は 1 と 2 のみを数えます（0 = 情報なし）。",
-    notice: (f, g, rel, prof) => `<b>プレビュー。</b>${f}フィード・${g}公開分、GTFS Analyzer ${rel}（${prof}プロファイル）。公開は新しいものから順に解析しており、未解析の古い公開は毎日バックグラウンドで追加されます。セマンティック変更レポートは新しい公開ペアから毎日追加されています（差分レポートタブ）。`,
-    overview: "概要", history: "フィード履歴", reports: "差分レポート", gtfsjp: "GTFS-JP",
-    search: "フィード検索", prefecture: "都道府県", readiness: "公開状態", sort: "並び替え", all: "すべて",
-    ready: "公開準備完了", notReady: "未準備", merge: "同一内容の公開をまとめる",
-    sortRecent: "最新の公開順", sortName: "名前", sortLow: "Overall（低い順）", sortHigh: "Overall（高い順）",
-    feeds: n => `全${n}フィード`, feed: "フィード",
-    prev: n => `${n}つ前`, current: "現行", delta: "Δ",
-    noChange: "±0 変更なし", routes: "路線", stops: "停留所", trips: "便",
-    fixed: n => `${n}件のルール解消`, newRules: n => `${n}件の新規ルール`,
-    cmpNote: { SAME_FEED: "2つの公開は同じZIPファイルです。検証結果の差は検証日の違いだけによるものです（各公開は自身の開始日で検証）。", INCOMPATIBLE_METHOD: "2つの公開は異なる検証方法（アナライザー、プロファイル、プラットフォーム）で解析されたため、結果を直接比較できません。", UNVERIFIED_INPUT: "一方の公開の解析が部分的（PARTIAL）です。比較の対象範囲は不完全です。" },
-    atomFeed: "Atomで購読", atomAll: "すべての主な変更（Atom）", atomHint: "影響の大きい変更のフィードです。フィードリーダーに追加してください。",
-    nextChip: (n, d) => `次回: ${d}${n > 1 ? `（+${n - 1}）` : ""}・比較`, clickNext: "現行と次回の公開を比較", jpFiles: "JPファイル", formatDiff: (a, b) => `形式の違い：旧公開のJPファイル［${a}］、新公開［${b}］。ルール差分の一部はサービス変更ではなく形式の変更による可能性があります。`, mergedChip: n => `×${n}回公開`,
-    fatal: "解析なし", lastPub: "最新の公開",
-    pickOld: "旧", pickNew: "新", backwards: "旧側の方が新しいため、差分を逆方向に表示しています。",
-    singlePub: "このフィードで比較できる公開は1つだけです。以下はその公開自体の状態です。", snap1: "スコア", snap2: "構成", snap3: "ルール違反", snapCount: "件数", snapNoRules: "ルール違反はありません。", snapSemantic: "セマンティック変更レポートには2つの公開が必要です。このフィードが次に公開されたとき、最初のレポートが自動で作成されます。",
-    s1: "スコアの変化", s2: "構成の変化", s3: "ルール差分", s4: "意味的な変更",
-    publish: "Publish", overall: "Overall", spec: "Spec", interop: "Interop", quality: "Quality", analytics: "Analytics",
-    mRoutes: "路線", mStops: "停留所", mTrips: "便", mShapes: "形状", mDays: "運行日数", mAvg: "1日平均便数",
-    before: "前", after: "後", rule: "ルール", title: "説明",
-    bNew: "新規", bIncreased: "増加", bDecreased: "減少", bFixed: "解消",
-    showSame: n => `変化のない${n}件を表示`, hideSame: "変化のないものを隠す", noRuleChange: "ルール件数に変化はありません。",
-    histIntro: "選択したフィードの全公開（古い順）。まとめる設定では、内容が同一の連続した公開を1行で表示します。",
-    period: "有効期間", published: "公開", memo: "メモ", status: "状態", rid: "APIの位置",
-    gtfsjpText: p => `<p>解析はGTFS Analyzerの<b>${p}</b>プロファイルで行いました。プロファイルは選択可能（auto・v3・v4）で、異なるプロファイルの結果は別に保持し、比較しません。</p><p>各公開は有効期間の開始日（from_date）時点で検証されます。</p>`,
-    footer: "データ：gtfs-data.jpおよび各事業者。スコアと変更レポートはこれらのデータから作成したもので、各フィードのライセンスはフィードのパネルに表示します。フィード名・停留所名は公開時のまま表示します。地図：地理院タイル。スコアの色の閾値は暫定です（≥95 / ≥85）。アクセス解析に Google アナリティクスを使用しています（Cookie を使用し、データは Google に送信されます）。",
-    mergeNote: "まとめた公開は「×N回公開」と表示します：解析の要約（スコア・指標・ルール件数・ファイル行数）が直前と完全に同じ公開を1列にまとめています。ZIPファイル自体は異なる場合があり、どの公開も削除せず、すべてフィード履歴に一覧表示します。",
-    dataUpdated: "±0 スコア・データ更新", validity: "有効期間",
-    organization: "事業者", feedPick: "フィード", showDisc: "終了したフィードを表示", discChip: d => `終了: ${d}`, orgCount: (n, a) => `${n}フィード・${a}件有効`, scopeNote: (dr, list) => `対象範囲の変更の可能性：路線数が${dr}変化し、同じ事業者の次のフィードがこの期間に終了しています：${list}。路線がフィード間で移った可能性があります（推定）。`,
-    compare: "比較", compareHint: "表の過去の公開をクリックすると現行と、現行をクリックするとその1つ前と、Δセルをクリックすると隣り合う2つを比較します。下で任意の2つを選ぶこともできます。", clickGen: "この公開を現行と比較", clickCurrent: "現行を1つ前の公開と比較", clickDelta: "この2つの公開を比較",
-    license: "ライセンス", org: "事業者", openFeed: "フィードを表示", links: "リンク"
-  }
 };
 
 const SCORES = ["publish", "overall", "spec", "interop", "quality", "analytics"];
@@ -781,76 +712,6 @@ const R = {
     farkTitle: c => `${c} champs modifiés`,
     map: "Carte", mapAll: "Tout afficher", mapLegend: "Vert : ajouté · rouge : supprimé · orange : renommé · trait : ancienne → nouvelle position d'un arrêt déplacé · gris : autres arrêts du rapport. Cliquez sur une ligne du tableau pour centrer la carte sur cet arrêt.", mapNoCoords: "Les arrêts modifiés n'ont pas de coordonnées.", routeMap: "Carte de l'itinéraire", routeOld: "Ancien itinéraire", routeNew: "Nouvel itinéraire", routeLegend: "Bleu : nouvel itinéraire · rouge pointillé : ancien itinéraire · ombré : parties distantes de plus de 50 m · points : arrêts modifiés de cette ligne.", routeMoved: (d, len, max) => `${d} : passe ailleurs sur ${len} m (jusqu'à ${max} m d'écart)`, routeSame: d => `${d} : même itinéraire`, routeMinor: (d, max) => `${d} : différence de tracé seulement (jusqu'à ${max} m, sous le seuil de 50 m)`, routeOnlyNew: d => `${d} : nouvelle publication seulement`, routeOnlyOld: d => `${d} : ancienne publication seulement`, routeFromStops: "(pas de tracés dans le flux ; arrêts reliés)", netLegend: "Réseau · en couleur : lignes modifiées · gris : inchangées · orange : parties où l'itinéraire a changé. Cliquez sur une ligne pour l'ouvrir.",
   },
-  ja: {
-    wd: ["月", "火", "水", "木", "金", "土", "日"], hol: "祝", every: "毎日", dtSep: "・", dtGroups: (o, n) => `曜日区分 ・旧：${o} ・新：${n}。両者を細かい方に合わせて比較しました。`,
-    mode: { same_days: "同じ日付で比較", successive_periods: "連続する期間：各公開の主要ダイヤを比較" },
-    ls: { added: "新設", discontinued: "廃止", renamed: "改称", merged: "統合", split: "分割", restructured: "再編", changed: "変更", unchanged: "変更なし" },
-    ps: { added: "新設", removed: "廃止", renamed: "改称", moved: "移設", renamed_moved: "改称・移設", unchanged: "変更なし" },
-    imp: { major: "影響大", minor: "影響小", technical: "技術的" },
-    evt: { ROUTE_MERGED: n => `路線統合${n}件`, ROUTE_SPLIT: n => `路線分割${n}件`, ROUTE_RESTRUCTURED: n => `路線再編${n}件`, ROUTE_ADDED: n => `路線新設${n}件`, ROUTE_DISCONTINUED: n => `路線廃止${n}件`, ROUTE_RENAMED: n => `路線名変更${n}件`, STOP_ADDED: n => `停留所新設${n}件`, STOP_REMOVED: n => `停留所廃止${n}件`, STOP_RENAMED: n => `停留所名変更${n}件`, STOP_MOVED: n => `停留所移設${n}件`, FARE_CHANGED: () => "運賃変更" },
-    impPattern: n => `${n}路線で経路変更`, impReduced: n => `${n}路線で減便`, impIncreased: n => `${n}路線で増便`,
-    impTripsAdded: (d, n) => `${d}：${n}便増`, impTripsRemoved: (d, n) => `${d}：${n}便減`, impNone: "利用者に関わる変更はありません。",
-    evtShort: { ROUTE_ADDED: "新設路線", ROUTE_DISCONTINUED: "廃止", ROUTE_MERGED: "統合", ROUTE_SPLIT: "分割", ROUTE_RESTRUCTURED: "再編", ROUTE_RENAMED: "名称変更", SERVICE_REDUCED: "減便", SERVICE_INCREASED: "増便", PATTERN_EXTENDED: "経路延長", PATTERN_SHORTENED: "経路短縮", STOP_SKIPPED: "停留所通過", STOP_INSERTED: "停留所追加", DETOUR_ADDED: "経由追加", DETOUR_REMOVED: "経由廃止", DETOUR_SHIFTED: "経由便の入替", STOPS_REORDERED: "停留所順序変更", TRIPS_MOVED: "他路線へ移管", FIRST_LAST_CHANGED: "始発・終発変更", TRIPS_RETIMED: "時刻変更", STOP_ADDED: "停留所新設", STOP_REMOVED: "停留所廃止", STOP_RENAMED: "停留所名変更", STOP_MOVED: "停留所移設" },
-    ek: { extended: "延長", shortened: "短縮", inserted: "停留所追加", removed: "停留所削除", detour_added: "経由追加", detour_removed: "経由廃止", shifted: "経由便の入替", reordered: "順序変更" },
-    topic: { fares: "運賃", calendar_exceptions: "運行日の例外", agency: "事業者", office: "営業所", translations: "翻訳", feed_info: "フィード情報", shapes: "経路形状", transfers: "乗継", other_files: "その他のファイル", formatting: "表記のみの変更（値は同じ）", attributes: "属性の変更（行先表示、乗降の扱い、コード、座標の微修正）" },
-    ck: { added: "行追加", removed: "行削除", changed_fields: "項目変更" },
-    title: "変更レポート", old: "旧公開", new: "新公開", comparison: "比較",
-    compared: "比較日", activeDays: "運行日数", periods: "期間", special: "特別な日",
-    coverage: (e, o, u, n) => `変更行 ${n.toLocaleString()} 件（ファイル・列の変更を含む）のうち、${e.toLocaleString()} 件はレポートで説明済み、${o.toLocaleString()} 件は比較対象外の日、${u.toLocaleString()} 件は未分類です。`,
-    cE: "説明済み", cO: "比較対象外", cU: "未分類",
-    sSummary: "概要", sService: "運行日", sLines: "路線ごとの変更", sPlaces: "停留所", sOther: "その他の変更", sAll: "すべての差分",
-    lines: "路線", places: "停留所", trips: "便数", firstLast: "始発・終発", fares: "運賃", quality: "データ品質",
-    firstLastN: n => `始発または終発が${state.flShift}分以上変わった路線・方向・曜日区分：${n}`,
-    faresTxt: f => f.changed ? `変更あり・運賃種別 追加${f.classes_added}・削除${f.classes_removed}・価格変更${f.prices_changed}` : "変更なし",
-    unchangedLines: n => `変更のない路線 ${n}`, noLineChange: "便・経路の変更はありません。", noLineChangeDates: n => `代表日には路線の変更はありませんが、${n}日で違いがあります（運行日 → 日付ごとの変更を参照）。`, dcTitle: "日付ごとの変更", rvReport: "レポート", rvVerify: "検証", covShort: p => `変更行の${p}%をレポートで説明済み。詳細は検証タブ。`, vCoverage: "カバー率", vSelf: "整合性チェック", vSelfOk: "不整合なし：時刻表と時間帯別便数、ファイル表とカバー率が一致しています。", vSelfBad: n => `${n}件の不整合：`, irrTitle: "臨時・不定期の運行", irrCols: ["公開", "運行区分", "日付", "日数", "便数", "運行形態"], irrMode: { adds: "通常ダイヤに追加", replaces: "通常ダイヤの代わり", mixed: "日により追加・代替" }, irrNone: "両公開とも臨時・不定期の運行はありません。", irrNote: "臨時・不定期：どの通常期間にも属さない運行区分（特別な日、短期間、散発的な日）。", periodsTitle: "期間の詳細", dcCols: ["日付", "曜日区分", "便数（旧 → 新）", "変更"], dcChanged: "時刻変更", dcAdded: "新設", dcRemoved: "廃止", dcMore: n => `ほか${n}便`, dcCard: n => `代表日以外で変更のある日：${n}`, dcNone: "両公開が共通して有効な日には、代表日の変更以外に日付固有の違いはありません。", dcNote: "両公開が共通して有効な日を1日ずつ比較しました。代表日の変更と同じ日は表示しません（その変更は路線ごとの表示にあります）。ここには特別便、祝日ダイヤ、1日だけの時刻変更など日付固有の違いのみを表示します。",
-    travelTitle: "所要時間（始点から終点）", travelCols: ["方向", "曜日区分", "中央値 · 旧", "中央値 · 新", "Δ", "対応する便"],
-    travelPaired: (l, s, n) => `延長 ${l} · 短縮 ${s} · 同じ ${n}`, min: m => `${m}分`,
-    bandTitle: "時間帯別の便の割合（全路線）", bandCols: ["時間帯", "旧", "新", "旧 %", "新 %", "Δ ポイント"],
-    bandNote: "便は始発時刻の時間帯で数え、割合は全便に対する値です。割合が1ポイント以上変わった時間帯のみ表示します。",
-    byHour: "時間帯別便数（始発時刻）", dir: "方向", first: "始発", last: "終発", patterns: "経路の変更",
-    timetables: "時刻表", vOld: "旧", vNew: "新", vDiff: "差分", noTT: "この側に便はありません。",
-    ttLegend: "差分表示：緑の列は新設便、赤は廃止便、黄は時刻または経路が変わった便。変更セルは新時刻を太字、旧時刻を取り消し線で表示。片側のみの停留所は色付きです。",
-    ttUnchanged: "他の方向・曜日区分の時刻表は変更ありません。",
-    placeCols: ["状態", "旧名称", "新名称", "距離", "路線"], unchangedPlaces: n => `変更のない停留所 ${n} は省略。`,
-    noOther: "その他の変更はありません。",
-    rawNote: "件数は行単位です（1行で複数項目が変わっても1件）。説明済み＋比較対象外＋未分類＝追加行＋削除行＋変更行＋ファイル・列の変更。変更行のセルにカーソルを合わせると変更項目数を表示します。", unclassTitle: n => `未分類の差分の詳細（${n}）`,
-    engine: (v, h) => `セマンティックエンジン ${v}・祝日表 ${h}。閾値は試行調整前の暫定値です。`,
-    notes: {
-      FORMAT_DIFFERENCE: n => `形式の違い：旧公開のJPファイル [${n.old_files.join(", ") || "—"}]、新公開 [${n.new_files.join(", ") || "—"}]。`,
-      POSSIBLE_SCOPE_CHANGE: n => `対象範囲の変更の可能性：路線数が${n.route_delta}変化。同じ組織で終了したフィード：${n.ended_feeds.map(e => `${e.feed_id}（${e.end_date}）`).join("、")}。`,
-      NO_COMMON_DAY_TYPE: () => "共通の曜日区分がなく、便を比較できませんでした。",
-      OUTSIDE_COMPARISON_PRESENT: () => "比較しなかった日（特別な日・短い期間）のみ運行する便があり、比較対象外として数えています。",
-    },
-    panelOpen: "レポート全体 →", panelNone: "このペアのセマンティックレポートはありません。レポートはページに表示される公開（現行、3つ前まで、次期）の間でのみ、新しいペアから毎日作成されます。それより古いペアや作成できないペア（公開ファイルを取得できない場合など）は空欄のままです。",
-    panelNotAdjacent: "この2つの公開のレポートはまだありません。隣り合わないペアのレポートは、ページに表示される公開（現行、3つ前まで、次期）の間でのみ作成され、毎日の実行で順次作成されます。",
-    panelLines: s => `路線：変更${s.changed}・新設${s.added}・廃止${s.discontinued}・改称/再編${s.renamed + s.merged + s.split + s.restructured}`,
-    panelPlaces: s => `停留所：新設${s.added}・廃止${s.removed}・改称${s.renamed}・移設${s.moved}`,
-    panelCov: p => `変更行の${p}%を説明済み`,
-    backward: "選択が逆順です。レポートは旧→新で表示します。",
-    skipped: (n, k) => `隣り合わない比較：間の${n}公開を飛ばしています${k ? `（うち${k}件は解析不可）` : ""}。レポートは間のすべての変更をまとめて示します。`,
-    pick: n => `概要タブでフィードを選び、連続する2つの公開を比較すると、そのレポートがここに表示されます。レポートのあるペア（${n}）：`,
-    loading: "レポートを読み込み中…", loadFailed: e => `レポートを読み込めませんでした（${e}）。`,
-    rsearch: "フィード・事業者・日付で検索…", rmore: (n, all) => `${all}件中${n}件を表示しています。検索を絞り込んでください。`, rnone: "該当するペアはありません。",
-    est: { "~M": "推定：意味のあるサービス変更", "~T": "推定：技術的・メタデータのみの変更" },
-    estNote: "このペアにはレポートがありません。変更されたファイルから分類を推定しました（カレンダーと feed_info のみの変更は技術的）。",
-    cls: { MEANINGFUL_SERVICE_CHANGE: "意味のあるサービス変更", TECHNICAL_OR_METADATA_ONLY: "技術的・メタデータのみの変更" }, clsWhy: "理由", clsTech: "技術的",
-    metres: m => `${m} m`, others: "レポートのある他のペア",
-    tripChanges: "便の変更",
-    tcCols: ["方向", "曜日区分", "変更", "旧発車", "新発車", "差（分）", "旧到着", "新到着", "備考"],
-    tk: { reordered: "停留所の順序変更", retimed: "時刻変更", rerouted: "経路変更", retimed_rerouted: "時刻・経路変更", added: "新設", removed: "廃止", moved_out: "他路線へ移行", moved_in: "他路線から移行", moved_dir: "方向の再定義" },
-    tcNote: "発車：始発停留所の時刻、到着：終着停留所の時刻。経路が変わった便は備考に変更部分を旧 ⇒ 新で表示します。変更のない便は表示しません。", midShift: (d, p) => `途中停留所で最大${d}分（${p}）`,
-    movesNote: (n, lines) => `${n}便がこの路線と次の路線の間で移行：${lines}。同じ系統群の経路違いの可能性があります。詳細は便の変更表を参照。`,
-    editTrips: n => `${n}便`, editDominant: "主要経路の比較",
-    movesCard: n => `他の路線・方向へ移行した便：${n}`,
-    renumCard: r => `IDのみ変更：停留所 ${r.stops} · 路線 ${r.lines} · 便 ${r.trips}`,
-    dwellTitle: "停留所での停車時間（1便あたり合計）", dwellCols: ["方向", "曜日区分", "中央値 · 旧", "中央値 · 新", "Δ"],
-    dk: { service_dates_changed: "運行日の変更（旧：削除日、新：追加日）", calendar_no_effect: "影響なし（同じ日付・表記のみ変更）", calendar_outside_shared: "両公開の共通期間外", calendar_unused_service: "便に使われない運行区分", attribute_changed: "項目変更", coordinates_adjusted: "座標の微修正（移設の閾値未満）", row_added: "行追加", row_removed: "行削除", field_changed: "項目変更", shape_changed: "形状変更", file_added: "ファイル追加", file_removed: "ファイル削除", column_added: "列追加", column_removed: "列削除", rows_bulk: "一括変更", file_changed_opaque: "読めないファイルの変更" },
-    detailCols: ["変更", "ファイル", "キー", "項目", "旧", "新"],
-    truncated: n => `ほか${n}件（すべて差分ファイルに記録）。`, showDetails: n => `詳細（${n}）`,
-    fileCols: ["ファイル", "旧行数", "新行数", "増減", "追加", "削除", "変更行", "説明済み", "比較対象外", "未分類"],
-    farkTitle: c => `変更項目 ${c}`,
-    map: "地図", mapAll: "全体表示", mapLegend: "緑：新設・赤：廃止・橙：改称・線：移設した停留所の旧→新位置・灰：レポート内のその他の停留所。表の行をクリックするとその停留所へ移動します。", mapNoCoords: "変更された停留所に座標がありません。", routeMap: "経路地図", routeOld: "旧経路", routeNew: "新経路", routeLegend: "青：新経路・赤破線：旧経路・網掛け：50 m以上離れた区間・点：この路線で変更された停留所。", routeMoved: (d, len, max) => `${d}：${len} mの区間で別の道を通行（最大${max} m）`, routeSame: d => `${d}：経路は同じ`, routeMinor: (d, max) => `${d}：描画上の差のみ（最大${max} m、50 m未満）`, routeOnlyNew: d => `${d}：新公開のみ`, routeOnlyOld: d => `${d}：旧公開のみ`, routeFromStops: "（経路形状なし・停留所を結線）", netLegend: "路線網・色付き：変更のある路線・灰：変更なし・橙：経路が変わった区間。路線をクリックすると詳細を開きます。",
-  },
 };
 const rt = (k, ...a) => { const v = R[state.lang][k]; return typeof v === "function" ? v(...a) : v; };
 // Day types are groups of calendar categories found from each feed ("mon,tue,wed,thu,fri", "sun,hol").
@@ -957,7 +818,7 @@ function impactSummary(imp) {
     if (x.added) parts.push(rt("impTripsAdded", dtLabel(d), x.added));
     if (x.removed) parts.push(rt("impTripsRemoved", dtLabel(d), x.removed));
   });
-  return `<p class="impsum">${impChip(imp.class)} ${esc(parts.length ? parts.join(state.lang === "ja" ? "、" : ", ") : rt("impNone"))}</p>`;
+  return `<p class="impsum">${impChip(imp.class)} ${esc(parts.length ? parts.join(", ") : rt("impNone"))}</p>`;
 }
 function lineImpact(rep, line) {
   const l = rep.impact && rep.impact.lines[line.key];
@@ -1307,7 +1168,7 @@ function pairIndices(gs, pairKey) {
 }
 // ---- Shareable links: #feed=<org>/<feed>&old=<uid>&new=<uid>&tab=<tab>&view=<report|verify> ----
 // Links hold publication uids, never group indices, so they survive merging and changes in grouping.
-const TABS = SITE.tabs || ["overview", "history", "reports", "gtfsjp"], VIEWS = ["report", "verify"];
+const TABS = SITE.tabs || ["overview", "history", "reports"], VIEWS = ["report", "verify"];
 function parseLink(hash) {
   const p = new URLSearchParams(String(hash || "").replace(/^#/, ""));
   const get = k => p.get(k) || null;
@@ -1370,7 +1231,7 @@ function openPair(pairKey) {
   renderAll();
 }
 
-// ---- Maps: Leaflet with the site's tiles (default GSI, 地理院タイル) ----
+// ---- Maps: Leaflet with the site's tiles (default Plan IGN) ----
 const MAP_STATUS = { added: "--good", removed: "--bad", renamed: "--warn", moved: "--warn", renamed_moved: "--warn", unchanged: "--muted" };
 // Leaflet writes colours into SVG attributes, where CSS variables do not work: read the current values.
 const cssVar = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -1668,8 +1529,7 @@ function renderReport() {
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const $ = id => document.getElementById(id);
 const key = f => `${f.org_id}/${f.feed_id}`;
-const prefName = id => SITE.regions ? (SITE.regions[id] || "—")
-  : (id >= 1 && id <= 47) ? (state.lang === "ja" ? PREFS[id - 1][0] : PREFS[id - 1][1]) : "—";
+const prefName = id => (SITE.regions && SITE.regions[id]) || "—";
 
 // One-decimal arithmetic matching the pipeline (exact difference, halves away from zero).
 const round1 = x => { const s = Math.sign(x), a = Math.abs(x); return s * Math.round(a * 10 + 1e-9) / 10; };
@@ -1960,7 +1820,7 @@ function renderPanel() {
   }
   panel.innerHTML = `<div class="ph"><h2>${esc(f.name)}</h2>
       <div class="meta"><span>${esc(f.organization_name)}</span><span>${esc(prefName(f.pref_id))}</span><span>${esc(t("license"))}: ${esc(f.license)}</span>${feedLinks(f) ? `<span>${feedLinks(f)}</span>` : ""}</div>
-      <div class="meta"><span>${esc(t("lastPub"))}: <span class="num">${esc((f.generations[f.generations.length - 1].published_at || "").slice(0, 16).replace("T", " "))}</span> JST</span>${
+      <div class="meta"><span>${esc(t("lastPub"))}: <span class="num">${esc((f.generations[f.generations.length - 1].published_at || "").slice(0, 16).replace("T", " "))}</span></span>${
         atomFeeds().has(key(f)) ? `<a href="atom/${state.lang}/${esc(key(f))}.xml" title="${esc(t("atomHint"))}">${esc(t("atomFeed"))}</a>` : ""}</div>
       ${cur.scores ? `<span class="state ${cur.publishable ? "ok" : "no"}">${cur.publishable ? "●" : "○"} ${esc(cur.publishable ? t("ready") : t("notReady"))}</span>` : ""}
     </div>
@@ -2053,7 +1913,7 @@ function fieldsBlock(a, b) {
   if (!x && !y) return `<p class="hint">${esc(t("fieldNone"))}</p>`;
   const warn = [[x, rt("old")], [y, rt("new")]].map(([v, side]) => {
     const c = v && v["stops.txt"] && v["stops.txt"].coordinates;
-    return c && (c.outside_japan || c.swapped) ? `<p class="fmt">${esc(t("coordWarn", side, c.outside_japan, c.swapped))}</p>` : "";
+    return c && (c.outside_area || c.swapped) ? `<p class="fmt">${esc(t("coordWarn", side, c.outside_area, c.swapped))}</p>` : "";
   }).join("");
   const rows = [];
   for (const file of [...new Set([...Object.keys(x || {}), ...Object.keys(y || {})])].sort())
@@ -2066,7 +1926,7 @@ function fieldsBlock(a, b) {
 }
 const STALE_HOURS = 36;
 // Freshness and pending work from the export's status block (data-model §10.2).
-function statusNote(st, lang, nowMs, timeZone = "Asia/Tokyo", updated = null) {
+function statusNote(st, lang, nowMs, timeZone = "Europe/Paris", updated = null) {
   // updated: a site profile's "updated" text, "{0}" the time ago and "{1}" the local time
   if (!st || !st.built_at) return "";
   const built = Date.parse(st.built_at), mins = Math.max(0, Math.floor((nowMs - built) / 60000));
@@ -2084,9 +1944,9 @@ function renderStatic() {
   document.querySelectorAll("[data-t]").forEach(el => { el.textContent = t(el.dataset.t); });
   document.querySelectorAll("nav.tabs button").forEach(b => { b.textContent = t(b.dataset.tab); b.setAttribute("aria-selected", String(b.dataset.tab === state.tab)); });
   document.querySelectorAll("#langs button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === state.lang)));
-  ["overview", "history", "reports", "gtfsjp"].forEach(id => { $("tab-" + id).hidden = id !== state.tab; });
+  ["overview", "history", "reports"].forEach(id => { $("tab-" + id).hidden = id !== state.tab; });
   document.querySelectorAll("nav.tabs button").forEach(b => { b.hidden = !TABS.includes(b.dataset.tab); });
-  $("brand").textContent = SITE.name || "GTFS-JP Monitor";
+  $("brand").textContent = SITE.name || "GTFS-FR Monitor";
   const prefSel = $("pref"), pv = prefSel.value;
   const prefs = [...new Set(DATA.feeds.map(f => f.pref_id).filter(Boolean))].sort((a, b) => a - b);
   prefSel.innerHTML = `<option value="">${esc(t("all"))}</option>` + prefs.map(p => `<option value="${p}">${esc(prefName(p))}</option>`).join("");
@@ -2108,8 +1968,6 @@ function renderStatic() {
   const sortSel = $("sort"), sv = sortSel.value || "recent";
   sortSel.innerHTML = [["recent", "sortRecent"], ["name", "sortName"], ["low", "sortLow"], ["high", "sortHigh"]].map(([v, k]) => `<option value="${v}">${esc(t(k))}</option>`).join("");
   sortSel.value = sv;
-  const profile = (DATA.analysis_key || "").split("__")[1] || "auto";
-  $("gtfsjp").innerHTML = t("gtfsjpText", esc(profile));
   $("footer").innerHTML = `${(SITE.links || []).filter(safeLink).length ? `<p class="sitelinks">${esc(t("links"))}: ${(SITE.links || []).filter(safeLink).map(linkHtml).join(" · ")}</p>` : ""}<p>${esc(t("footer"))}</p>`;
   $("merge-note").textContent = state.merge ? t("mergeNote") : "";
 }

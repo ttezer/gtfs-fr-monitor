@@ -25,8 +25,8 @@
               "filled": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 } },
               "coordinates": {
                 "description": "stops.txt only: stops outside Japan (latitude 20-46, longitude 122-154) and those whose coordinates only fit it swapped.",
-                "type": "object", "additionalProperties": false, "required": ["outside_japan", "swapped"],
-                "properties": { "outside_japan": { "type": "integer", "minimum": 0 }, "swapped": { "type": "integer", "minimum": 0 } }
+                "type": "object", "additionalProperties": false, "required": ["outside_area", "swapped"],
+                "properties": { "outside_area": { "type": "integer", "minimum": 0 }, "swapped": { "type": "integer", "minimum": 0 } }
               }
             }
           }

@@ -5,32 +5,33 @@ in code comments and schemas as `data-model §N`.
 
 ## §1 Sources and archive policy
 
-- Feed metadata and generation ZIPs come from the gtfs-data.jp API v2.
-- ZIPs are downloaded temporarily, analysed and deleted; they are never stored. A generation
-  can be analysed again later by fetching it through its permanent `gtfs_file_uid`.
+- Feeds, versions and ZIPs come from transport.data.gouv.fr: the dataset list (`/api/datasets`),
+  each dataset's recent archived files (`/api/datasets/{id}`) and its full history export
+  (`/datasets/{numeric id}/resources_history_csv`). Which archived files are versions is decided by
+  the trips of the dates ahead (docs/DESIGN.md, Anlamlı sürüm; `gtfs_fr_monitor.selection`).
+- ZIPs are downloaded temporarily, analysed and deleted; they are never stored. Every archived file
+  has a permanent URL on the archive host, so a version can be analysed again later.
 - Every stored analysis records the ZIP SHA-256. A later download with a different hash is
-  reported as `SOURCE_CHANGED`; the stored result is kept. A generation that can no longer be
+  reported as `SOURCE_CHANGED`; the stored result is kept. A version that can no longer be
   downloaded is `SOURCE_UNAVAILABLE`; its stored results are kept.
-- `gtfs_url` redirects to a signed storage URL that carries temporary credentials. That URL is
-  followed but never logged, returned or stored.
+- Downloads follow https redirects only and never log, return or store a redirect URL.
 
 ## §2 Generation identity and ordering
 
-- The permanent identifier of a generation is `gtfs_file_uid` (lower-case UUID v4). The API's
-  `rid` (`next_N`, `current`, `prev_N`) is relative and shifts over time; it never appears in
-  analysis records or diff keys, only in the catalog and run records.
-- Generations of a feed are ordered oldest first by `from_date`, then `published_at` compared
-  as an instant, then `uid`. A missing or unparsable `published_at` sorts first within its day.
-  `published_at` never leads: bulk re-uploads give many old generations the same value.
+- The permanent identifier of a generation (a version) is the archived file's `uuid` (lower-case
+  UUID v4). The catalog keeps `rid_observed` for a source with relative positions; here it is
+  always null.
+- Generations of a feed are ordered oldest first by `from_date` (the publication day in Paris),
+  then `published_at` compared as an instant, then `uid`. A missing or unparsable `published_at`
+  sorts first within its day.
 - A generation without a usable `from_date` is not ordered (`ORDERING_UNKNOWN`).
-- The API's own rid order is checked against this order; a mismatch is a warning and this
-  order stays canonical.
 
 ## §3 Identifier validation
 
-`org_id` and `feed_id` must match `^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$` (and are not `.` or
-`..`); `gtfs_file_uid` must be a lower-case UUID v4. Values from the API are validated before
-any path is built; paths are built only from validated components.
+`org_id` (the dataset's `datagouv_id`) and `feed_id` (the GTFS resource id) must match
+`^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$` (and are not `.` or `..`); a generation uid must be a
+lower-case UUID v4. Values from the API are validated before any path is built; paths are built
+only from validated components.
 
 ### §3.3 Replaced files
 
@@ -47,8 +48,7 @@ SHA is reported as a `SOURCE_CHANGED` warning in the run record, and `feed.json`
 `source_status: SOURCE_CHANGED`); the content record is rewritten, diffs and equivalence follow
 from the records, and the semantic reports and report markers of every pair with the uid are
 removed so that the report step builds them again from the new file. The page says that the file
-was replaced. Measured on 2026-10-02: 4 of 9,323 analysed publications had renewed dates, and all
-4 files had changed.
+was replaced.
 
 ## §4 Data repository layout
 
@@ -138,24 +138,27 @@ repository are produced on `x86_64-linux` only, because the same analyzer code h
 give different results on different platforms. Unpinned binaries may write only into a directory
 that contains a `.unpinned-scratch` marker file.
 
-### §6.3 GTFS-JP profile
+### §6.3 Analyzer profile
 
-The requested profile is part of the analysis identity. The default is `auto`; `v3` and `v4`
-can be selected per run.
+The requested profile is part of the analysis identity. It is always `auto`: GTFS Analyzer runs its
+GTFS-JP rules only on feeds that carry GTFS-JP signals, so French feeds get the GTFS rules. Rule
+titles are read in French, English and Turkish.
 
 ## §7 Catalog sync
 
-- One request lists all feeds; one request per feed returns its whole history
-  (large `max_prev` and `max_next`; the returned counts are checked against the reported ones).
+- One request lists all datasets; each feed in scope is one GTFS resource of a public-transit
+  dataset (regional aggregates and all-network files left out). One request per dataset returns
+  its recent archived files; a feed seen for the first time also gets its history export.
 - Contact fields (e-mail addresses) are never copied.
 - History is never dropped: a feed that fails to load keeps its previous entries, a feed that
-  leaves the list is kept with `listed: false`, a uid the API stops returning is kept with
+  leaves the list is kept with `listed: false`, a uid the source stops returning is kept with
   `present: false`.
-- An unchanged source leaves every catalog file byte-identical. A `rid` shift is not a new
-  generation.
-- Lasting conditions of a feed (rid order mismatch, unknown license, rejected API records,
-  incomplete history, unordered generations) are stored as `notes` on its catalog entry and
-  change only when the condition changes. One-off events (fetch failure, a generation that
+- An unchanged source leaves every catalog file byte-identical. The per-feed version state
+  (`catalog/fr-state/<org>/<feed>.json`) is rewritten only when a version starts or its reference
+  is renewed.
+- Lasting conditions of a feed (unknown licence, rejected records, a feed too large to follow,
+  a history left for a later run, unordered generations) are stored as `notes` on its catalog entry
+  and change only when the condition changes. One-off events (fetch failure, a generation that
   disappears, a feed that leaves the list) go to the run record.
 
 ## §8 Incremental analysis
@@ -199,9 +202,9 @@ share one `limit`, so the time budget of a run does not grow during the fill.
 
 ## §10 Scheduled workflow
 
-`.github/workflows/gtfs-jp-monitor.yml` runs daily at 04:10 JST and on demand: unit tests,
-pinned analyzer installation, catalog sync, incremental analysis, semantic change reports
-(§11), and one commit to the data repository when something changed. A single concurrency
+`.github/workflows/gtfs-fr-monitor.yml` runs daily at 01:30 UTC and on demand: unit tests,
+pinned analyzer installation, catalog and version sync, incremental analysis, semantic change
+reports (§11), and one commit to the data repository when something changed. A single concurrency
 group guarantees one writer at a time.
 
 After the data commit the job rebuilds the public web site from the data repository
@@ -282,7 +285,7 @@ catches a monitoring workflow that fails and one that does not start at all.
 ### §10.3 Atom feeds
 
 People who want to hear of important changes subscribe in a feed reader; nothing is sent and
-nothing needs an account (`src/gtfs_fr_pipeline/atom.py`). For each page language (`tr`, `en`, `ja`)
+nothing needs an account (`src/gtfs_fr_pipeline/atom.py`). For each page language (`fr`, `en`, `tr`)
 the site has one Atom feed per transit feed with at least one report of major impact (§12.1), its
 20 newest such reports, and one for all feeds with the 50 newest. An entry is one report: its id a
 `tag:` URI of the pair, its time the new publication's `published_at` (else its start date), its
@@ -294,23 +297,22 @@ feed and the one for all feeds, and names the latter in its head for readers tha
 
 ### §10.4 Site profile
 
-The same page and feeds serve another source's site (the French monitor builds on this code).
-`export-web --site-profile <json>` reads `{"site": {...}, "head": "...", "atom": {...}}`:
+The page template carries this site's languages (`fr`, `en`, `tr`; a test keeps their keys
+equal), texts, look, Plan IGN tiles and Paris time. What comes from data is passed by
+`export-web --site-profile <json>` (written by `python -m gtfs_fr_monitor site-profile`):
+`{"site": {...}, "head": "...", "atom": {...}}`.
 
 - `site` is embedded in the export as `site` and read by the page; every field is optional:
-  `name`, `langs`, `default_lang`, `locale` (name sorting), `time_zone` (update times),
-  `regions` (`feed_pref_id` → name), `tiles` (`url` with `{z}/{x}/{y}`, `label`, `link`),
-  `tabs`, `hide` (feed history columns to leave out: `rid`, `jpFiles`, `memo`), and `text`
-  (`{lang: {key: text}}`, replacing the page's texts of that language; `"{0}"`, `"{1}"` stand for
-  the arguments of the page's own text), `links` (`[{label, url}]`, shown in the footer),
+  `name`, `regions` (`feed_pref_id` → name), `links` (`[{label, url}]`, shown in the footer),
   `feed_links` (URL templates with `{org_id}` and `{feed_id}`) and `feed_extra`
-  (`{"org/feed": [{label, url}]}`), shown in the feed panel and the report; only https URLs are shown.
+  (`{"org/feed": [{label, url}]}`, here the Mobility Database entries), shown in the feed panel and
+  the report; only https URLs are shown. The page's defaults can also be overridden: `langs`,
+  `default_lang`, `locale`, `time_zone`, `tiles`, `tabs`, `hide` (feed history columns to leave out;
+  by default `rid`, `jpFiles`, `memo`) and `text` (`{lang: {key: text}}`; `"{0}"`, `"{1}"` stand
+  for the arguments of the page's own text).
 - `head` replaces the page's site block between `<!--site-head-->` and `<!--/site-head-->`
-  (title, description, feed links, analytics), so another site never sends this site's page views.
+  (title, description, feed links). The site measures no visits.
 - `atom` sets `langs`, `titles`, `author` and `tag` (part of entry ids) of the Atom feeds.
-
-Without a profile the site is this one: languages `tr`, `en`, `ja`, prefectures, GSI tiles, JST.
-The page carries texts in `tr`, `en`, `fr` and `ja`; a test keeps their keys equal.
 
 ## §11 Semantic change reports
 
@@ -475,11 +477,11 @@ change of the engine version (§11).
 The content signature pass (§4.2) also counts how often selected optional fields are filled and
 stores it in `content.json` as `fields`: per file, its rows and, per field, the rows with a value.
 A tracked column the file does not have counts as never filled. For `stops.txt` it also counts
-stops outside Japan (latitude 20–46, longitude 122–154) and, among them, those that fit only with
-latitude and longitude swapped (`coordinates`); the page warns about them, since their lines look
-wrong on maps and in route comparisons. Another source passes its own areas (`run_analysis(areas=)`,
-a list of latitude/longitude boxes); the count keeps its name `outside_japan` and then means outside
-those areas. The signature itself does not depend on the areas. For `wheelchair_boarding`,
+stops outside France (metropolitan France with Corsica, Guadeloupe, Martinique, Guyane, La
+Réunion and Mayotte: `signature.FRANCE`) and, among them, those that fit only with latitude and
+longitude swapped (`coordinates`: `outside_area`, `swapped`); the page warns about them, since
+their lines look wrong on maps and in route comparisons. Cross-border lines count their foreign
+stops as outside. The signature itself does not depend on the areas. For `wheelchair_boarding`,
 `wheelchair_accessible` and `bikes_allowed` only 1 and 2 count, since 0 means "no information".
 
 | File | Fields |

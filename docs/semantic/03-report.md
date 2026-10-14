@@ -25,7 +25,7 @@ only changes.
 
 ### 0. Header
 
-- Feed, organisation, prefecture; old and new publication (validity, publication date, the
+- Feed, organisation, region; old and new publication (validity, publication date, the
   source's note text).
 - Comparison mode (same days / successive periods), compared dates per day type, and the periods
   found in each publication.
@@ -182,7 +182,7 @@ the reports.
 
 Everything stored is language-neutral: codes, numbers, dates, and names as published (place,
 line and feed names are never translated). Section titles, labels and explanations come from the
-viewer's TR / EN / JA catalogue.
+viewer's FR / EN / TR catalogue.
 
 ## Builder
 

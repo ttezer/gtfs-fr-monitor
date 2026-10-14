@@ -42,8 +42,9 @@ own day types as well.
 Within a day type, a date whose service set occurs on fewer than `special_max_days` dates of
 that day type is **special**.
 
-National holidays come from a bundled, versioned table of Japanese public holidays (a data file
-of the engine, updated yearly). The table version is written into every output.
+National holidays come from a bundled, versioned table of French public holidays (metropolitan
+France, from calendrier.api.gouv.fr; a data file of the engine, updated yearly). The table version
+is written into every output.
 
 For each day type, the **typical day** of a period is the most frequent service set among its
 dates (ties: the earliest date). Trips of a typical day define "the timetable" of that day type.
@@ -67,7 +68,8 @@ Planners ask two kinds of questions, answered by two modes chosen automatically:
 every day with the same window and keep, sometimes rewrite, the days already gone. With the
 option on, both modes and the date-specific changes (03-report.md §2) use only dates on or after
 the new publication's `published_at` date; a side without such dates falls back to all its dates.
-gtfs-data.jp publications look ahead, so the option stays off there.
+transport.data.gouv.fr files are republished daily, so the option is on for this site
+(`gtfs_fr_monitor.profile.engine_config`).
 
 A **period** is a maximal date range over which a day type's typical service set does not change.
 A publication that bundles two timetables (before and after a change) therefore has two periods;

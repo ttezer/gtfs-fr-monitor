@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/ttezer/gtfs-jp-monitor/schemas/content.schema.json",
   "title": "gtfs-jp-monitor-content/1",
-  "description": "Content signature of a publication's ZIP (feeds/<org_id>/<feed_id>/generations/<uid>/content.json), independent of the analysis key. Equal signatures mean every file holds the same values; see src/gtfs_jp_monitor/signature.py and data-model §4.2.",
+  "description": "Content signature of a publication's ZIP (feeds/<org_id>/<feed_id>/generations/<uid>/content.json), independent of the analysis key. Equal signatures mean every file holds the same values; see src/gtfs_fr_pipeline/signature.py and data-model §4.2.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema", "zip_sha256", "signature", "files"],

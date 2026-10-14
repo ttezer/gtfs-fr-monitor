@@ -142,7 +142,7 @@ def run_analysis(
 ) -> RunReport:
     """canonical_key: the key the site uses, kept as the canonical analysis in feed.json while a
     newer release is filled in the background (data-model §8.1); defaults to this run's key.
-    areas: another source's stop areas for the content signature's outside count (default Japan)."""
+    areas: another source's stop areas for the content signature's outside count (default France)."""
     root = Path(data_dir)
     check_writable(root, binary.is_pinned)
     release_tag = binary.pinned_release or f"v{binary.version}"

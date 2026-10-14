@@ -464,7 +464,7 @@ def build_report_from_feeds(old_feed: Feed, new_feed: Feed, *, feed: dict, old_p
 
     old_cal = build_calendar(ot, holidays, config, (_date(old_pub["from_date"]), _date(old_pub.get("to_date"))))
     new_cal = build_calendar(nt, holidays, config, (_date(new_pub["from_date"]), _date(new_pub.get("to_date"))))
-    # Off by default (gtfs-data.jp publications look ahead); a source that republishes daily turns it on.
+    # Off by default; this site turns it on (gtfs_fr_monitor.profile.engine_config): files are republished daily.
     published = new_pub.get("published_at") if cfg.get("compare_from_publication", False) else None
     after = datetime.fromisoformat(published).date() if published else None
     comparison = choose_comparison(old_cal, new_cal, config, after)

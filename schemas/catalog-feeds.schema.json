@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/ttezer/gtfs-fr-monitor/schemas/catalog-feeds.schema.json",
   "title": "gtfs-fr-monitor-catalog-feeds/1",
-  "description": "catalog/feeds.json: every feed ever listed by gtfs-data.jp, sorted by org_id then feed_id. No timestamps of the run, so an unchanged source produces an unchanged file. Contact fields (e-mail etc.) are never copied.",
+  "description": "catalog/feeds.json: every feed ever listed by the source (transport.data.gouv.fr), sorted by org_id then feed_id. No timestamps of the run, so an unchanged source produces an unchanged file. Contact fields (e-mail etc.) are never copied.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema", "feeds", "rejected"],

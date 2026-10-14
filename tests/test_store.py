@@ -34,7 +34,7 @@ CATALOG_FEED = {
 
 def cat_gen(n, from_date="2026-04-01", present=True):
     return {"org_id": ORG, "feed_id": FEED, "uid": uid(n), "rid_observed": "current" if present else None,
-            "gtfs_url": "https://api.gtfs-data.jp/x", "from_date": from_date, "to_date": "2027-03-31",
+            "gtfs_url": "https://transport-data-gouv-fr-resource-history-prod.cellar-c2.services.clever-cloud.com/x.zip", "from_date": from_date, "to_date": "2027-03-31",
             "published_at": "2026-03-01T00:00:00+09:00", "memo": "", "present": present}
 
 

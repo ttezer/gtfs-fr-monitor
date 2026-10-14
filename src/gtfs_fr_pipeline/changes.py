@@ -192,7 +192,7 @@ def run_reports(data_dir: Path, key: str, limit: int | None = None, only: set[Fe
     """Build pending reports. max_seconds is a time budget: no new pair starts after it, so the
     workflow never reaches its own time limit and loses the run; the rest waits for the next run.
     config and holidays_path: another source's engine configuration and holiday table (default:
-    the engine's own, for gtfs-data.jp)."""
+    the engine's own)."""
     root = Path(data_dir)
     deadline = None if max_seconds is None else clock() + max_seconds
     split_key(key)

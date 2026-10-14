@@ -23,7 +23,7 @@ def feed_record(org=ORG, feed=FEED, license_raw="lov2") -> FeedRecord:
 def gen(n: int, rid: str, from_date: str, published_at: str | None = None) -> GenerationRecord:
     return GenerationRecord(
         uid=uid(n), rid=rid,
-        gtfs_url=f"https://api.gtfs-data.jp/v2/organizations/{ORG}/feeds/{FEED}/files/feed.zip?uid={uid(n)}",
+        gtfs_url=f"https://transport-data-gouv-fr-resource-history-prod.cellar-c2.services.clever-cloud.com/{FEED}/feed.zip?uid={uid(n)}",
         from_date=from_date, to_date="2027-03-31", published_at=published_at or f"{from_date}T00:00:00+09:00", memo="",
     )
 
@@ -180,7 +180,7 @@ class CatalogSyncTest(unittest.TestCase):
         self.assertEqual(read(self.data, "generations.json")["generations"][-1]["uid"], uid(0))
 
     def test_source_without_rid(self):
-        # Another source has no gtfs-data.jp positions; ordering comes from from_date/published_at alone.
+        # Without relative positions, ordering comes from from_date/published_at alone.
         class PlainSource:
             def list_feeds(self):
                 return [feed_record()], []

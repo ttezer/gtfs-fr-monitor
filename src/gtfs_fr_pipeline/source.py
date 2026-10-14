@@ -46,7 +46,7 @@ class FeedRecord:
 @dataclass(frozen=True)
 class GenerationRecord:
     uid: str
-    rid: str | None  # gtfs-data.jp position (current, prev_N, next_N); None when the source has none
+    rid: str | None  # a relative position (current, prev_N, next_N) for sources that have one; None here
     gtfs_url: str
     from_date: str | None
     to_date: str | None

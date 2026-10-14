@@ -31,7 +31,7 @@
       "properties": {
         "org_id": { "$ref": "#/$defs/path_id" },
         "feed_id": { "$ref": "#/$defs/path_id" },
-        "name": { "type": "string", "description": "Original feed name from gtfs-data.jp; never translated." }
+        "name": { "type": "string", "description": "Original feed name from the source; never translated." }
       }
     },
     "generation": {

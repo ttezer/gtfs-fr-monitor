@@ -1,6 +1,7 @@
-"""Japanese national holidays and calendar categories (docs/semantic/02-matching.md §1).
+"""Public holidays and calendar categories (docs/semantic/02-matching.md §1).
 
-The table is the Cabinet Office list, stored as a versioned data file of the engine. Dates in
+The table is the French public holiday list (metropolitan France, calendrier.api.gouv.fr), stored
+as a versioned data file of the engine (gtfs_fr_monitor.profile.holiday_doc). Dates in
 years the table does not cover raise instead of being treated as ordinary days, so an outdated
 table is noticed immediately.
 """

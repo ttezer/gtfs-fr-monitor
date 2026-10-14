@@ -263,8 +263,6 @@ def main(argv: list[str] | None = None) -> int:
     chk.set_defaults(func=_cmd_check_storage)
 
     args = parser.parse_args(argv)
-    if getattr(args, "min_interval", 1.0) < 0.5:
-        parser.error("--min-interval below 0.5 s is not allowed (be polite to gtfs-data.jp)")
     return args.func(args)
 
 

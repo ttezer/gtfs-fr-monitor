@@ -1,4 +1,4 @@
-"""Validation of identifiers that come from the gtfs-data.jp API (data-model §3).
+"""Validation of identifiers that come from the source (data-model §3).
 
 API values are untrusted: org_id, feed_id and gtfs_file_uid become directory and file
 names, so they are checked against strict patterns before any path is built.

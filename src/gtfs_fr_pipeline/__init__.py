@@ -1,1 +1,1 @@
-"""Monitoring pipeline for GTFS feeds published on gtfs-data.jp."""
+"""Monitoring pipeline for GTFS feeds published on transport.data.gouv.fr."""

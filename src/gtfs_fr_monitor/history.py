@@ -3,7 +3,7 @@
 The platform downloads every resource regularly and keeps each distinct file with a permanent
 URL. Two lists describe them: the last 25 entries of a dataset (`history` of /api/datasets/{id},
 all formats mixed) and the complete export (/datasets/{numeric id}/resources_history_csv). Both
-become Candidates here; entries are untrusted and checked like the gtfs-data.jp records.
+become Candidates here; entries are untrusted and checked before use.
 """
 
 from __future__ import annotations

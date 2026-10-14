@@ -56,4 +56,3 @@ The stages are `gtfs_fr_monitor sync-catalog | analyze | semantic-reports | site
 Feeds: transport.data.gouv.fr and the data producers, under each feed's licence (Licence Ouverte,
 ODbL…). Map tiles: Plan IGN (IGN-F / Géoplateforme). Public holidays: calendrier.api.gouv.fr.
 Regions: geo.api.gouv.fr. Mobility Database links: MobilityData. Code: MIT.
-# gtfs-fr-data

@@ -1,4 +1,4 @@
-"""Planner report for one pair of publications (docs/semantic/03-report.md).
+"""Planner report for one pair of publications (notes/semantic/03-report.md).
 
 Joins the raw diff, service days, place, line and trip matches into one
 gtfs-fr-semantic-report/1 document, and accounts for every raw difference.

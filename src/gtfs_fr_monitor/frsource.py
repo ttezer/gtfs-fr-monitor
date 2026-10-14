@@ -1,6 +1,6 @@
 """The French CatalogSource: feeds from transport.data.gouv.fr, versions from their archived files.
 
-get_generations returns the versions of a feed (docs/DESIGN.md, Anlamlı sürüm). The first time a
+get_generations returns the versions of a feed (notes/DESIGN.md, Anlamlı sürüm). The first time a
 feed is seen, its history export is sampled; afterwards only the newest archived file is checked.
 Files are downloaded to `work_dir` for the fingerprint and removed at once. Downloads per run are
 bounded; a feed left without its history when the budget runs out gets it on a later run.
@@ -30,7 +30,7 @@ MB = 1024 * 1024
 class Settings:
     data_dir: Path
     work_dir: Path
-    max_stop_times_bytes: int = 100 * MB  # larger feeds wait for a streaming engine (docs/FEASIBILITY.md)
+    max_stop_times_bytes: int = 100 * MB  # larger feeds wait for a streaming engine (notes/FEASIBILITY.md)
     max_zip_bytes: int = 512 * MB
     max_csv_bytes: int = 64 * MB
     fingerprint_days: int = 120

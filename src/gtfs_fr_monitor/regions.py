@@ -1,4 +1,4 @@
-"""Region of a dataset from the areas it covers (docs/DESIGN.md, Feed kimliği).
+"""Region of a dataset from the areas it covers (notes/DESIGN.md, Feed kimliği).
 
 transport.data.gouv.fr describes a dataset by its EPCI, communes, départements or region. They are
 mapped to one INSEE region code with the official geography API's lists (data/regions.json); a

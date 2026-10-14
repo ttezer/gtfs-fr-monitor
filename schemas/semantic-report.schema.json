@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/ttezer/gtfs-fr-monitor/schemas/semantic-report.schema.json",
   "title": "gtfs-fr-semantic-report/1",
-  "description": "Planner-oriented change report for one consecutive pair of publications (docs/semantic/03-report.md). Language-neutral: codes, numbers, dates and names as published. Places are defined once in `places` and referenced by index everywhere else.",
+  "description": "Planner-oriented change report for one consecutive pair of publications (notes/semantic/03-report.md). Language-neutral: codes, numbers, dates and names as published. Places are defined once in `places` and referenced by index everywhere else.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema", "header", "summary", "service_days", "places", "lines", "moves", "other", "accounting", "quality"],
@@ -42,7 +42,7 @@
               }
             },
             "day_types": {
-              "description": "Typical day compared for each day type (docs/semantic/02-matching.md §2). A day type missing on one side has null there.",
+              "description": "Typical day compared for each day type (notes/semantic/02-matching.md §2). A day type missing on one side has null there.",
               "type": "object",
               "propertyNames": { "$ref": "#/$defs/day_type" },
               "additionalProperties": {
@@ -553,7 +553,7 @@
     },
 
     "events": {
-      "description": "With report.events: every conclusion of the report as one event, with the raw differences that caused it (docs/semantic/03-report.md, Events).",
+      "description": "With report.events: every conclusion of the report as one event, with the raw differences that caused it (notes/semantic/03-report.md, Events).",
       "type": "array",
       "items": {
         "type": "object",
@@ -615,7 +615,7 @@
     "day_type": {
       "type": "string",
       "pattern": "^(mon|tue|wed|thu|fri|sat|sun|hol)(,(mon|tue|wed|thu|fri|sat|sun|hol))*$",
-      "description": "Calendar categories (weekdays, hol = national holiday) that run the same services, in calendar order; found from the feed's own calendar (docs/semantic/02-matching.md §1)."
+      "description": "Calendar categories (weekdays, hol = national holiday) that run the same services, in calendar order; found from the feed's own calendar (notes/semantic/02-matching.md §1)."
     },
     "time_band": { "type": "string", "pattern": "^[0-9]{2}-[0-9]{2}$" },
     "direction": { "type": "string", "pattern": "^(0|1|[0-9a-f]{8})$", "description": "direction_id, or a short hash of first/last place when direction_id is missing." },

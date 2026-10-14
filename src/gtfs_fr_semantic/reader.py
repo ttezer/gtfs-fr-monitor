@@ -1,4 +1,4 @@
-"""Read a GTFS ZIP into exact string tables (docs/semantic/01-raw-diff.md, "Input reading")."""
+"""Read a GTFS ZIP into exact string tables (notes/semantic/01-raw-diff.md, "Input reading")."""
 
 from __future__ import annotations
 
@@ -23,12 +23,12 @@ class Config:
     bulk_threshold: int
     max_rows_per_file: int
     max_uncompressed_bytes: int
-    # docs/semantic/02-matching.md §1-2 (placeholders until pilot calibration)
+    # notes/semantic/02-matching.md §1-2 (placeholders until pilot calibration)
     special_max_days: int = 10
     min_overlap_days: int = 14
-    # Matching thresholds (docs/semantic/02-matching.md §3-6), read from the "matching" section.
+    # Matching thresholds (notes/semantic/02-matching.md §3-6), read from the "matching" section.
     matching: dict = field(default_factory=dict, hash=False, compare=False)
-    # Report assembly (docs/semantic/03-report.md), read from the "report" section.
+    # Report assembly (notes/semantic/03-report.md), read from the "report" section.
     report: dict = field(default_factory=dict, hash=False, compare=False)
 
     @classmethod

@@ -1,4 +1,4 @@
-"""Which archived files are versions (docs/DESIGN.md, Anlamlı sürüm).
+"""Which archived files are versions (notes/DESIGN.md, Anlamlı sürüm).
 
 A version starts where the trips of the dates ahead change. Each file is compared with a
 reference file: the start of the last version, renewed once half of its dates ahead have passed.

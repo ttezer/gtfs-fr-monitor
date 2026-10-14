@@ -1,4 +1,4 @@
-"""Trips of a typical day, pattern edits and trip matching (docs/semantic/02-matching.md §5-6).
+"""Trips of a typical day, pattern edits and trip matching (notes/semantic/02-matching.md §5-6).
 
 Old trips are expressed in the new side's place ids (via place matches) so that renumbered stops
 compare equal. Unmatched old places keep a distinct "old:" id and never equal a new place.

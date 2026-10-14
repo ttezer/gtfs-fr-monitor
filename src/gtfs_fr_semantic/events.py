@@ -1,4 +1,4 @@
-"""Semantic events and id mappings of a change report (docs/semantic/03-report.md, "Events").
+"""Semantic events and id mappings of a change report (notes/semantic/03-report.md, "Events").
 
 The report's sections describe places, lines and their trips. With `report.events`, the report also
 lists every conclusion as one event of a fixed type, each with the raw differences (Part 1) that

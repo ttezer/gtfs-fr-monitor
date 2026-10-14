@@ -1,4 +1,4 @@
-"""The site profile for the page and Atom feeds (docs/data-model.md §10.4), passed to
+"""The site profile for the page and Atom feeds (notes/data-model.md §10.4), passed to
 `python -m gtfs_fr_pipeline export-web --site-profile`.
 
 The page template (web/prototype/index.html) already carries this site's languages, texts, look,

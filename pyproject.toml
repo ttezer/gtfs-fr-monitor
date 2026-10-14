@@ -5,7 +5,7 @@ description = "Monitoring pipeline for GTFS feeds published on transport.data.go
 requires-python = ">=3.11"
 license = {text = "MIT"}
 # The engine and pipeline (gtfs_fr_semantic, gtfs_fr_pipeline) live in this repository: copied from
-# gtfs-jp-monitor at 0d4d7f2 and developed here on their own (docs/DESIGN.md). No dependencies.
+# gtfs-jp-monitor at 0d4d7f2 and developed here on their own (notes/DESIGN.md). No dependencies.
 dependencies = []
 
 [project.optional-dependencies]

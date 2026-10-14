@@ -1,4 +1,4 @@
-"""Raw diff between two GTFS feeds (docs/semantic/01-raw-diff.md).
+"""Raw diff between two GTFS feeds (notes/semantic/01-raw-diff.md).
 
 Every difference is listed once, in a fixed order, with a positional identifier.
 """

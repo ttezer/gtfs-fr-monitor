@@ -1,4 +1,4 @@
-"""transport.data.gouv.fr client: the French feed source (docs/DESIGN.md).
+"""transport.data.gouv.fr client: the French feed source (notes/DESIGN.md).
 
 Every response is untrusted: identifiers are validated before they become paths, contact
 fields are not kept. A feed is one GTFS resource of a public-transit dataset:
@@ -22,7 +22,7 @@ BASE_URL = "https://transport.data.gouv.fr"
 
 @dataclass(frozen=True)
 class Scope:
-    """Which datasets and resources are monitored (docs/DESIGN.md, Kapsam)."""
+    """Which datasets and resources are monitored (notes/DESIGN.md, Kapsam)."""
 
     dataset_type: str = "public-transit"
     excluded_title_prefixes: tuple[str, ...] = ("Agrégat",)  # regional aggregates repeat local feeds

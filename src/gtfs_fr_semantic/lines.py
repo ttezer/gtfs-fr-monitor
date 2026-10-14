@@ -1,4 +1,4 @@
-"""Lines and their matching between two publications (docs/semantic/02-matching.md §4).
+"""Lines and their matching between two publications (notes/semantic/02-matching.md §4).
 
 A line groups the routes a passenger sees as one: same normalised short name, else long name,
 else route_id; a configured family pattern can take the line's name out of a variant's name

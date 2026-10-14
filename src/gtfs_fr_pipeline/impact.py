@@ -1,6 +1,6 @@
 """Impact of the changes a semantic report found (data-model §12.1).
 
-Every event of a report (docs/semantic/03-report.md, Events) is major, minor or technical; a line
+Every event of a report (notes/semantic/03-report.md, Events) is major, minor or technical; a line
 takes the highest class of its own events (a stop change reaches a line through its pattern
 events), the report the highest of all. Like the pair classes (§12), the rules are
 in classification.json and are applied when the site is built, so changing them needs no new

@@ -1,4 +1,4 @@
-"""Public holidays and calendar categories (docs/semantic/02-matching.md §1).
+"""Public holidays and calendar categories (notes/semantic/02-matching.md §1).
 
 The table is the French public holiday list (metropolitan France, calendrier.api.gouv.fr), stored
 as a versioned data file of the engine (gtfs_fr_monitor.profile.holiday_doc). Dates in

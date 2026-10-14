@@ -1,4 +1,4 @@
-"""Semantic change reports for publications the web page shows (docs/semantic/03-report.md, Storage).
+"""Semantic change reports for publications the web page shows (notes/semantic/03-report.md, Storage).
 
 Pairs are neighbouring analysed publications as the page shows them (see report_pairs) and the
 other pairs the page can compare (page_pairs), all within the page window: the current group,

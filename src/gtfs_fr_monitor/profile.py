@@ -1,4 +1,4 @@
-"""The French profile of the shared engine: holiday table and engine configuration (docs/DESIGN.md).
+"""The French profile of the shared engine: holiday table and engine configuration (notes/DESIGN.md).
 
 Holidays come from the official calendar API (metropolitan France). Alsace-Moselle (Good Friday,
 26 December) and the overseas regions have other days; one national table is used for now.

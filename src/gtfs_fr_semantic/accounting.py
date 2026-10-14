@@ -1,4 +1,4 @@
-"""Classification of every raw difference (docs/semantic/01-raw-diff.md, 03-report.md §6).
+"""Classification of every raw difference (notes/semantic/01-raw-diff.md, 03-report.md §6).
 
 Each raw change ends up in exactly one bucket: explained by the report, outside the compared days,
 or unclassified. Nothing is dropped; the unclassified list shows where the report is silent.

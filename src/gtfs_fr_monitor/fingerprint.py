@@ -1,4 +1,4 @@
-"""Service fingerprint of a GTFS ZIP for the dates ahead (docs/DESIGN.md, Anlamlı sürüm).
+"""Service fingerprint of a GTFS ZIP for the dates ahead (notes/DESIGN.md, Anlamlı sürüm).
 
 Daily republished feeds change their file hashes every day (a rolling window, rewritten past
 days). What a rider meets is the trips that run on the days ahead, so a version is new only when

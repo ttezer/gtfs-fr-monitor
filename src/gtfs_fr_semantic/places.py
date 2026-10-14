@@ -1,4 +1,4 @@
-"""Places (stops) and their matching between two publications (docs/semantic/02-matching.md §3).
+"""Places (stops) and their matching between two publications (notes/semantic/02-matching.md §3).
 
 A place is a parent station with its platforms, or a stop without a parent. With
 `stop_group_radius_m`, stops without a parent that share a normalised name and lie that close

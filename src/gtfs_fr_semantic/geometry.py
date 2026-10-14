@@ -1,4 +1,4 @@
-"""Route geometry of a line direction and how it changed (docs/semantic/03-report.md §3).
+"""Route geometry of a line direction and how it changed (notes/semantic/03-report.md §3).
 
 Geometry is the feed's shape when trips have one, else the line through the stops. It is
 simplified before storage. The change measure compares both lines point by point: each line

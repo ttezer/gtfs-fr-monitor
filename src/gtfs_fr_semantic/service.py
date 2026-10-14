@@ -1,4 +1,4 @@
-"""Service days, day types, periods and the comparison window (docs/semantic/02-matching.md §1-2).
+"""Service days, day types, periods and the comparison window (notes/semantic/02-matching.md §1-2).
 
 Day types come from each feed's own calendar: calendar categories (weekdays and national
 holidays) that run the same services in the same weeks form one day type, for example

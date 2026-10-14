@@ -1,4 +1,4 @@
-"""Archived files of a resource on transport.data.gouv.fr (docs/DESIGN.md, Anlamlı sürüm).
+"""Archived files of a resource on transport.data.gouv.fr (notes/DESIGN.md, Anlamlı sürüm).
 
 The platform downloads every resource regularly and keeps each distinct file with a permanent
 URL. Two lists describe them: the last 25 entries of a dataset (`history` of /api/datasets/{id},

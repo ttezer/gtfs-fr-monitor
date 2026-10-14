@@ -4,13 +4,13 @@ import zipfile
 from datetime import date
 from pathlib import Path
 
-from gtfs_fr_semantic.holidays import default_table
+from gtfs_fr_semantic.holidays import HolidayTable
 from gtfs_fr_semantic.reader import Config, read_feed
 from gtfs_fr_semantic.service import build_calendar, choose_comparison
 
 CONFIG = Config(100, 1_000_000, 100_000_000, special_max_days=10, min_overlap_days=14, matching=Config.load().matching)
 WEEKDAYS = "mon,tue,wed,thu,fri"
-HOL = default_table()
+HOL = HolidayTable.load(Path(__file__).resolve().parent / "fixtures" / "jp_holidays.json")  # the cases use Japanese holidays
 CAL_HEADER = "service_id,monday,tuesday,wednesday,thursday,friday,saturday,sunday,start_date,end_date\n"
 
 

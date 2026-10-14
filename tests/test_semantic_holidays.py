@@ -1,13 +1,17 @@
 import unittest
 from datetime import date
 
-from gtfs_fr_semantic.holidays import HolidayTableOutOfRange, default_table
+from pathlib import Path
+
+from gtfs_fr_semantic.holidays import HolidayTable, HolidayTableOutOfRange
+
+JP_HOLIDAYS = Path(__file__).resolve().parent / "fixtures" / "jp_holidays.json"  # these tests use Japanese holidays
 
 
 class HolidayTableTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.table = default_table()
+        cls.table = HolidayTable.load(JP_HOLIDAYS)
 
     def test_version_and_range(self):
         self.assertTrue(self.table.version.startswith("cao-"))

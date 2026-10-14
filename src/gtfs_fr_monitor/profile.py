@@ -9,12 +9,11 @@ from __future__ import annotations
 import dataclasses
 import hashlib
 import json
-from pathlib import Path
 
-from gtfs_fr_semantic.holidays import HolidayTable
+from gtfs_fr_semantic.holidays import DATA_FILE, HolidayTable, default_table
 from gtfs_fr_semantic.reader import Config
 
-HOLIDAYS_FILE = Path(__file__).with_name("data") / "fr_holidays.json"
+HOLIDAYS_FILE = DATA_FILE  # the engine's default table
 HOLIDAYS_SOURCE = "https://calendrier.api.gouv.fr/jours-feries/metropole.json"
 HOLIDAYS_SCHEMA = "gtfs-fr-semantic-holidays/1"
 
@@ -32,7 +31,7 @@ def holiday_doc(raw: bytes, retrieved: str) -> dict:
 
 
 def holidays() -> HolidayTable:
-    return HolidayTable.load(HOLIDAYS_FILE)
+    return default_table()
 
 
 def engine_config() -> Config:

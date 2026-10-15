@@ -9,9 +9,11 @@ bounded; a feed left without its history when the budget runs out gets it on a l
 from __future__ import annotations
 
 import functools
+import time
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
+from typing import Callable
 
 from gtfs_fr_pipeline.download import DownloadError, download_zip, urllib_opener
 from gtfs_fr_pipeline.ids import is_path_id
@@ -35,6 +37,7 @@ class Settings:
     max_csv_bytes: int = 64 * MB
     fingerprint_days: int = 120
     download_budget: int = 300  # per run
+    max_seconds: float | None = None  # per run: no download starts after it, so the run reaches its commit
     selection: SelectionConfig = field(default_factory=SelectionConfig)
 
 
@@ -43,12 +46,18 @@ def _is_export_url(url: object) -> bool:
 
 
 class FrSource:
-    def __init__(self, settings: Settings, client: TdgClient | None = None, opener=None) -> None:
+    def __init__(self, settings: Settings, client: TdgClient | None = None, opener=None,
+                 clock: Callable[[], float] = time.monotonic) -> None:
         self.settings = settings
         self.client = client or TdgClient()
         self._opener = opener or functools.partial(urllib_opener, user_agent=USER_AGENT)
+        self._clock = clock
+        self._deadline = None if settings.max_seconds is None else clock() + settings.max_seconds
         self.downloads = 0
         self.changed_states: list[str] = []
+
+    def out_of_time(self) -> bool:
+        return self._deadline is not None and self._clock() >= self._deadline
 
     def list_feeds(self):
         return self.client.list_feeds()
@@ -56,7 +65,7 @@ class FrSource:
     # --- downloads ---
 
     def _fetch(self, url: str, name: str, max_bytes: int, allowed) -> Path:
-        if self.downloads >= self.settings.download_budget:
+        if self.downloads >= self.settings.download_budget or self.out_of_time():
             raise _BudgetSpent()
         self.downloads += 1
         try:
@@ -97,7 +106,7 @@ class FrSource:
         else:
             try:
                 if ref is None:
-                    if self.settings.download_budget - self.downloads < self.settings.selection.max_fingerprints + 1:
+                    if self.settings.download_budget - self.downloads < self.settings.selection.max_fingerprints + 1 or self.out_of_time():
                         raise _BudgetSpent()  # do not start a history that cannot be finished
                     numeric = numeric_dataset_id(detail)
                     if numeric is None:
@@ -108,7 +117,7 @@ class FrSource:
                 elif newest is not None:
                     versions, ref = check(versions, ref, newest, self._fingerprint, self.settings.selection)
             except _BudgetSpent:
-                notes.append(Rejected("HISTORY_DEFERRED", org_id, feed_id, None, "download budget of this run spent"))
+                notes.append(Rejected("HISTORY_DEFERRED", org_id, feed_id, None, "download or time budget of this run spent"))
             if save_state(self.settings.data_dir, org_id, feed_id, versions, ref):
                 self.changed_states.append(f"{org_id}/{feed_id}")
         return FeedGenerations(

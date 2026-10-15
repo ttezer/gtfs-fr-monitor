@@ -41,8 +41,19 @@ def _feed_key(text: str) -> tuple[str, str]:
 
 
 def _cmd_sync_catalog(args: argparse.Namespace) -> int:
-    source = FrSource(Settings(Path(args.data_dir), Path(args.work_dir), download_budget=args.download_budget))
-    result = sync_catalog(source, Path(args.data_dir), only=set(args.only) if args.only else None)
+    import time
+
+    source = FrSource(Settings(Path(args.data_dir), Path(args.work_dir), download_budget=args.download_budget,
+                               max_seconds=args.max_minutes * 60 if args.max_minutes else None))
+    started = time.monotonic()
+
+    def progress(index: int, total: int, key: tuple[str, str]) -> None:
+        if index % 25 == 0:
+            print(f"[{index}/{total}] {time.monotonic() - started:.0f} s, {source.downloads} downloads, "
+                  f"{len(source.changed_states)} states written{' (time budget spent)' if source.out_of_time() else ''}",
+                  file=sys.stderr, flush=True)
+
+    result = sync_catalog(source, Path(args.data_dir), only=set(args.only) if args.only else None, progress=progress)
     print(json.dumps({
         "feeds_scanned": result.feeds_scanned, "generations_seen": result.generations_seen,
         "new_generations": len(result.new_generations), "changed_files": len(result.changed_files),
@@ -117,6 +128,7 @@ def main(argv: list[str] | None = None) -> int:
     sync.add_argument("--work-dir", required=True, help="scratch directory for downloads (removed files)")
     sync.add_argument("--only", type=_feed_key, action="append", metavar="ORG_ID/FEED_ID")
     sync.add_argument("--download-budget", type=int, default=300, help="downloads in this run (default 300)")
+    sync.add_argument("--max-minutes", type=float, help="time budget: no download starts after this many minutes")
     sync.add_argument("--events-out", help="write the catalog events of this run (JSON) here")
     sync.set_defaults(func=_cmd_sync_catalog)
 

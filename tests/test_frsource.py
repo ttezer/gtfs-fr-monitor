@@ -135,6 +135,14 @@ class FrSourceTest(unittest.TestCase):
         gens = self.source(download_budget=5).get_generations(ORG, FEED)
         self.assertEqual(([r.code for r in gens.rejected], self.world.urls), (["HISTORY_DEFERRED"], []))
 
+    def test_time_budget(self):
+        now = [0.0]
+        src = FrSource(Settings(self.data, self.settings.work_dir, max_seconds=60), client=FakeClient(self.world),
+                       opener=self.world.opener, clock=lambda: now[0])
+        now[0] = 61.0  # the budget is spent before the feed comes up
+        gens = src.get_generations(ORG, FEED)
+        self.assertEqual(([r.code for r in gens.rejected], self.world.urls, src.downloads), (["HISTORY_DEFERRED"], [], 0))
+
     def test_catalog_sync(self):
         result = sync_catalog(self.source(), self.data)
         self.assertEqual([w["code"] for w in result.warnings], [])

@@ -11,6 +11,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+import re
 import sys
 from dataclasses import dataclass
 from datetime import datetime
@@ -22,6 +23,8 @@ from gtfs_fr_pipeline.source import Rejected
 from .tdg import is_history_url
 
 PARIS = ZoneInfo("Europe/Paris")
+WHOLE_FILE = "(whole file)"  # Candidate.files entry when only the file's digest is known
+_SHA256 = re.compile(r"[0-9a-f]{64}")
 
 # Files whose change alone leaves the trips as they are; any other changed file is fingerprinted.
 METADATA_FILES = frozenset({"feed_info.txt", "attributions.txt", "translations.txt", "object_codes_extension.txt"})
@@ -77,8 +80,12 @@ def _candidate(resource_id: object, payload: object, url: object, org_id: str, f
         return None
     zmeta = [z for z in payload.get("zip_metadata") or [] if isinstance(z, dict)]
     files = tuple(sorted((str(z.get("file_name")), str(z.get("sha256"))) for z in zmeta))
+    if not files and _SHA256.fullmatch(str(payload.get("content_hash") or "")):
+        # Some archived files carry only the digest of the whole file (seen on files stored as .gtfs):
+        # it stands for the file list, so a change still reaches the fingerprint.
+        files = ((WHOLE_FILE, payload["content_hash"]),)
     if not files:
-        rejected.append(Rejected("NO_ZIP_METADATA", org_id, feed_id, uid, "file list missing"))
+        rejected.append(Rejected("NO_ZIP_METADATA", org_id, feed_id, uid, "neither a file list nor a content hash"))
         return None
     meta = payload.get("resource_metadata") if isinstance(payload.get("resource_metadata"), dict) else {}
     st = next((_int(z.get("uncompressed_size")) for z in zmeta if str(z.get("file_name", "")).endswith("stop_times.txt")), None)

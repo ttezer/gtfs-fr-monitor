@@ -55,6 +55,16 @@ class FromDatasetTest(unittest.TestCase):
         self.assertEqual(found, [])
         self.assertEqual([r.code for r in rejected], ["INVALID_UID", "UNTRUSTED_GTFS_URL", "INVALID_DATE", "NO_ZIP_METADATA"])
 
+    def test_content_hash_stands_for_the_file_list(self):
+        # Archived as .gtfs with only the digest of the whole file (seen on transport.data.gouv.fr).
+        e = entry(5, "2026-10-12T00:00:00Z", files={})
+        e["payload"]["content_hash"] = "1ba11045898be9d4a87a9832bbbc73e49d74f618b9c4eb1bcf284313bf5bc739"
+        found, rejected = from_dataset({"history": [e]}, ORG, FEED)
+        self.assertEqual(rejected, [])
+        self.assertEqual(found[0].files, (("(whole file)", e["payload"]["content_hash"]),))
+        listed = from_dataset({"history": [entry(4, "2026-10-11T00:00:00Z")]}, ORG, FEED)[0][0]
+        self.assertTrue(needs_fingerprint(listed, found[0]))  # another kind of signature: fingerprint decides
+
 
 class FromCsvTest(unittest.TestCase):
     def test_export(self):

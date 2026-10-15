@@ -135,6 +135,16 @@ class FrSourceTest(unittest.TestCase):
         gens = self.source(download_budget=5).get_generations(ORG, FEED)
         self.assertEqual(([r.code for r in gens.rejected], self.world.urls), (["HISTORY_DEFERRED"], []))
 
+    def test_unreadable_file_is_no_timetable(self):
+        # The newest archived file is not a zip: no version from it, the feed goes on, nothing fails.
+        self.source().get_generations(ORG, FEED)
+        self.world.publish(30, START + timedelta(days=30), times=("09:00:00", "09:30:00"))
+        n, day, _, size, times = self.world.files[-1]
+        self.world.files[-1] = (n, day, b"<html>not a zip</html>", size, times)
+        src = self.source()
+        gens = src.get_generations(ORG, FEED)
+        self.assertEqual((len(gens.generations), src.unreadable, gens.rejected), (2, [uid(30)], ()))
+
     def test_time_budget(self):
         now = [0.0]
         src = FrSource(Settings(self.data, self.settings.work_dir, max_seconds=60), client=FakeClient(self.world),

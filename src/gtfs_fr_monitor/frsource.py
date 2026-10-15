@@ -8,8 +8,11 @@ bounded; a feed left without its history when the budget runs out gets it on a l
 
 from __future__ import annotations
 
+import csv
 import functools
 import time
+import zipfile
+import zlib
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
@@ -26,6 +29,8 @@ from .state import load_state, save_state
 from .tdg import BASE_URL, USER_AGENT, TdgClient, is_history_url
 
 MB = 1024 * 1024
+UNREADABLE = (zipfile.BadZipFile, zipfile.LargeZipFile, zlib.error, EOFError, NotImplementedError, csv.Error,
+              FingerprintError, OSError, ValueError, KeyError)
 
 
 @dataclass
@@ -54,6 +59,7 @@ class FrSource:
         self._clock = clock
         self._deadline = None if settings.max_seconds is None else clock() + settings.max_seconds
         self.downloads = 0
+        self.unreadable: list[str] = []  # archived files that are no readable GTFS ZIP
         self.changed_states: list[str] = []
 
     def out_of_time(self) -> bool:
@@ -78,8 +84,11 @@ class FrSource:
         try:
             end = validity_end(path)
             return fingerprint(path, day, self.settings.fingerprint_days), end.isoformat() if end else None
-        except (FingerprintError, OSError, ValueError) as err:
-            raise ApiError(f"fingerprint of {c.uid} failed: {type(err).__name__}") from None
+        except UNREADABLE:
+            # Not a readable GTFS ZIP (some archived files are not zips at all): no timetable, like an
+            # expired file. Failing the feed instead would stop it on the same file every night.
+            self.unreadable.append(c.uid)
+            return {}, None
         finally:
             path.unlink(missing_ok=True)
 

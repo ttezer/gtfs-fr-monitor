@@ -58,6 +58,7 @@ def _cmd_sync_catalog(args: argparse.Namespace) -> int:
         "feeds_scanned": result.feeds_scanned, "generations_seen": result.generations_seen,
         "new_generations": len(result.new_generations), "changed_files": len(result.changed_files),
         "changed_states": len(source.changed_states), "downloads": source.downloads, "requests": source.client.request_count,
+        "unreadable_files": len(source.unreadable),
         "warnings_by_code": dict(sorted(collections.Counter(w["code"] for w in result.warnings).items())),
     }, ensure_ascii=False, indent=2))
     if args.events_out:

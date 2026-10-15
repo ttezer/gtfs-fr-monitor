@@ -77,6 +77,13 @@ class ServiceCalendarTest(unittest.TestCase):
         self.assertEqual(cal.window, (date(2026, 1, 1), date(HOL.last_year, 12, 31)))
         self.assertIn("WINDOW_CLIPPED_TO_HOLIDAY_TABLE", cal.notes)
 
+    def test_service_without_end(self):
+        # On-demand zone services are written "until 9999-12-31": no overflow, the window is the table's end.
+        cal = build_calendar(feed(self.dir, "f.zip", "Z,1,1,1,1,1,0,0,20260601,99991231\n"), HOL, CONFIG)
+        self.assertEqual(cal.window, (date(2026, 6, 1), date(HOL.last_year, 12, 31)))
+        self.assertIn("WINDOW_CLIPPED_TO_HOLIDAY_TABLE", cal.notes)
+        self.assertEqual(cal.days[date(2026, 6, 1)], frozenset({"Z"}))
+
     def test_no_service_days(self):
         cal = build_calendar(feed(self.dir, "e.zip", ""), HOL, CONFIG)
         self.assertIsNone(cal.window)

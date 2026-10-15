@@ -44,7 +44,9 @@ ERROR_SCHEMA = "gtfs-fr-monitor-change-error/1"
 # Each report is built in its own process: memory is returned after every pair, and a pair that
 # needs too much memory or time fails alone instead of taking the whole run down.
 CHILD_TIMEOUT_S = 900
-CHILD_MEMORY_BYTES = 8 << 30
+# An address-space limit, which runs well above the resident memory: a regional network with a 190 MB
+# shapes.txt peaked at 5.3 GB resident and hit 8 GiB of address space. The runner has 16 GB.
+CHILD_MEMORY_BYTES = 12 << 30
 
 
 def engine_build() -> str:

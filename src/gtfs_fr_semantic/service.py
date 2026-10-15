@@ -93,15 +93,23 @@ def build_calendar(tables: dict[str, Table], holidays: HolidayTable, config: Con
     trips = _rows(tables.get("trips.txt"))
     used = {t.get("service_id", "") for t in trips} - {""} if trips else None
 
+    # Days are expanded within the holiday table only: a service "until 9999-12-31" would be millions
+    # of days and overflow the date type. Its full span still sets the window below, which is then
+    # clipped to the table as before.
+    lo, hi = date(holidays.first_year, 1, 1), date(holidays.last_year, 12, 31)
     active: dict[str, set[date]] = collections.defaultdict(set)
+    beyond: dict[str, list[date]] = collections.defaultdict(list)  # service -> its bounds outside the table
     for row in _rows(tables.get("calendar.txt")):
         sid = row.get("service_id", "")
         start, end = parse_yyyymmdd(row.get("start_date", "")), parse_yyyymmdd(row.get("end_date", ""))
         if not sid or not start or not end or start > end:
             continue
         flags = [row.get(c, "0").strip() == "1" for c in WEEKDAY_COLUMNS]
-        d = start
-        while d <= end:
+        if not any(flags):
+            continue
+        beyond[sid] += [x for x in (start, end) if x < lo or x > hi]
+        d = max(start, lo)
+        while d <= min(end, hi):
             if flags[d.weekday()]:
                 active[sid].add(d)
             d += timedelta(days=1)
@@ -116,11 +124,12 @@ def build_calendar(tables: dict[str, Table], holidays: HolidayTable, config: Con
 
     services = {s: ds for s, ds in active.items() if used is None or s in used}
     notes: list[str] = []
-    window = _window(tables, validity, set().union(*services.values()) if services else set())
+    span = set().union(*services.values()) if services else set()
+    span.update(x for sid in services for x in beyond.get(sid, ()))
+    window = _window(tables, validity, span)
     if window is None:
         return ServiceCalendar(None, {}, {}, {}, set(), [], ["NO_SERVICE_DAYS"])
     start, end = window
-    lo, hi = date(holidays.first_year, 1, 1), date(holidays.last_year, 12, 31)
     if start < lo or end > hi:
         start, end = max(start, lo), min(end, hi)
         notes.append("WINDOW_CLIPPED_TO_HOLIDAY_TABLE")

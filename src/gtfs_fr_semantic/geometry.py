@@ -138,13 +138,18 @@ class _Index:
         return best
 
 
-def compare(old: list[Point], new: list[Point], sample_m: float, diverge_m: float, cap_m: float) -> dict:
+def compare(old: list[Point], new: list[Point], sample_m: float, diverge_m: float, cap_m: float,
+            max_samples: int | None = None) -> dict:
     """How far each line runs from the other.
 
     max_m: the largest distance of any sample to the other line (capped at cap_m);
     diverged_old_m / diverged_new_m: length of each line farther than diverge_m from the other;
     old_spans / new_spans: [first, last] point indices of those parts, for drawing.
+    max_samples: a longer line is sampled more coarsely, so that a coach line of hundreds of
+    kilometres costs no more than about max_samples distance queries per side.
     """
+    if old == new:  # the same points: nothing runs apart (what the sampling below would find)
+        return {"max_m": 0, "diverged_new_m": 0, "new_spans": [], "diverged_old_m": 0, "old_spans": [], "capped": False}
     lat0 = (old[0][0] + new[0][0]) / 2
     oxy, nxy = [_xy(p, lat0) for p in old], [_xy(p, lat0) for p in new]
     result = {"max_m": 0}
@@ -153,11 +158,14 @@ def compare(old: list[Point], new: list[Point], sample_m: float, diverge_m: floa
         spans: list[list[int]] = []
         far = 0.0
         biggest = 0.0
-        for (p, seg) in _samples(this, sample_m):
+        step = sample_m
+        if max_samples:
+            step = max(sample_m, sum(math.hypot(b[0] - a[0], b[1] - a[1]) for a, b in zip(this, this[1:])) / max_samples)
+        for (p, seg) in _samples(this, step):
             d = index.distance(p)
             biggest = max(biggest, d)
             if d > diverge_m:
-                far += sample_m
+                far += step
                 if spans and spans[-1][1] >= seg - 1:
                     spans[-1][1] = seg + 1
                 else:

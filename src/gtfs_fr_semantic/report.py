@@ -587,7 +587,8 @@ def build_report_from_feeds(old_feed: Feed, new_feed: Feed, *, feed: dict, old_p
         change = None
         if old and new:
             change = compare_geometry(old["points"], new["points"], config.report["geometry_sample_m"],
-                                      config.report["geometry_diverge_m"], config.report["geometry_cap_m"])
+                                      config.report["geometry_diverge_m"], config.report["geometry_cap_m"],
+                                      config.report.get("geometry_max_samples"))
         identical = bool(old and new and encode(old["points"]) == encode(new["points"]))
         pack = lambda g: None if g is None else dict(g, points=encode(g["points"]))
         # End places of the direction (new side first), so a direction without direction_id has a name.

@@ -53,6 +53,23 @@ class CompareTest(unittest.TestCase):
         r = compare(north(11), north(11, lon=136.0), 20, 50, 500)
         self.assertEqual((r["max_m"], r["capped"]), (500, True))
 
+    def test_same_points_shortcut_matches_the_sampling(self):
+        # Identical lines skip the sampling; the result, key order included, is what it would give.
+        line = north(11)
+        shortcut = compare(line, list(line), 20, 50, 500)
+        sampled = compare(line, [(p[0], p[1] + 1e-12) for p in line], 20, 50, 500)  # not equal, so sampled
+        self.assertEqual(list(shortcut.items()), list(sampled.items()))
+
+    def test_long_line_is_sampled_coarsely(self):
+        # A 1,000 km coach line with a 3 km detour: capped at 100 samples, a step of about 10 km.
+        old = north(9001, step=0.001)
+        new = north(4500, step=0.001) + [(35.0 + 4500 * 0.001, 135.033), (35.0 + 4530 * 0.001, 135.033)] + old[4531:]
+        fine = compare(old, new, 20, 50, 500)
+        coarse = compare(old, new, 20, 50, 500, max_samples=100)
+        self.assertEqual((fine["max_m"], coarse["max_m"]), (500, 500))  # both find the detour
+        self.assertGreater(coarse["diverged_new_m"], 0)
+        self.assertLess(abs(coarse["diverged_new_m"] - fine["diverged_new_m"]), 25_000)  # within a few steps
+
 
 if __name__ == "__main__":
     unittest.main()

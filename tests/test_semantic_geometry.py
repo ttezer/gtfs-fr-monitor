@@ -1,6 +1,6 @@
 import unittest
 
-from gtfs_fr_semantic.geometry import compare, encode, length_m, simplify
+from gtfs_fr_semantic.geometry import compare, encode, length_m, simplify, simplify_to
 
 # About 111 m per 0.001 degree of latitude.
 def north(n, lon=135.0, step=0.001):
@@ -14,6 +14,15 @@ class SimplifyTest(unittest.TestCase):
     def test_corner_is_kept(self):
         line = north(5) + [(35.004, 135.0 + i * 0.001) for i in range(1, 5)]
         self.assertEqual(len(simplify(line, 10)), 3)
+
+    def test_point_budget(self):
+        # A zigzag of 2,000 points 30 m apart keeps every corner at 10 m; the budget coarsens it.
+        zigzag = [(35.0 + i * 0.001, 135.0 + (0.0003 if i % 2 else 0.0)) for i in range(2000)]
+        self.assertEqual(len(simplify(zigzag, 10)), 2000)
+        coarse = simplify_to(zigzag, 10, 600)
+        self.assertLessEqual(len(coarse), 600)
+        self.assertEqual((coarse[0], coarse[-1]), (zigzag[0], zigzag[-1]))
+        self.assertEqual(simplify_to(north(20), 10, 600), simplify(north(20), 10))  # under budget: unchanged
 
     def test_encode_and_length(self):
         self.assertEqual(encode([(35.123456, 135.654321)]), [[3512346, 13565432]])

@@ -15,11 +15,11 @@ from pathlib import Path
 
 from . import ENGINE_VERSION
 from .accounting import Evidence, classify
-from .events import Facts, build_events, build_mappings
+from .events import Facts, build_events, build_mappings, ranges
 from .holidays import HolidayTable, default_table
 from .lines import Line, LineMatch, build_lines, match_lines
 from .places import PlaceMatch, build_places, match_places, place_of_stop
-from .geometry import compare as compare_geometry, encode, length_m, load_shapes, simplify
+from .geometry import compare as compare_geometry, encode, length_m, load_shapes, simplify_to
 from .rawdiff import diff_feeds
 from .reader import Config, Feed, read_feed
 from .report_check import check_report
@@ -576,7 +576,7 @@ def build_report_from_feeds(old_feed: Feed, new_feed: Feed, *, feed: dict, old_p
             source = "stops"
         if len(points) < 2:
             return None
-        points = simplify(points, config.report["geometry_tolerance_m"])
+        points = simplify_to(points, config.report["geometry_tolerance_m"], config.report.get("geometry_max_points"))
         return {"source": source, "length_m": round(length_m(points)), "points": points}
 
     def geometry(direction: str, by_dt: dict) -> dict | None:
@@ -860,7 +860,8 @@ def build_report_from_feeds(old_feed: Feed, new_feed: Feed, *, feed: dict, old_p
         "places": place_docs,
         "lines": line_docs,
         "moves": moves,
-        "other": [{"topic": topic, "counts": _counts(raw["changes"], ids), "evidence": ids,
+        # Evidence as runs of ids: a changed shape alone can touch millions of consecutive rows.
+        "other": [{"topic": topic, "counts": _counts(raw["changes"], ids), "evidence": ranges(ids),
                    **dict(zip(("details", "truncated"),
                               _attribute_details(raw["changes"], ids, config.report["other_details_max"], line_of) if topic == "attributes"
                               else _calendar_details(raw["changes"], ids, old_cal, new_cal, config.report["other_details_max"]) if topic == "calendar_exceptions"

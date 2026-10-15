@@ -498,7 +498,7 @@
         "properties": {
           "topic": { "enum": ["fares", "calendar_exceptions", "agency", "office", "translations", "feed_info", "shapes", "transfers", "other_files", "formatting", "attributes"] },
           "counts": { "type": "object", "additionalProperties": { "$ref": "#/$defs/count" } },
-          "evidence": { "$ref": "#/$defs/evidence" },
+          "evidence": { "$ref": "#/$defs/evidence_ranges", "description": "Raw difference ids of the topic as runs (since engine 0.7.1)." },
           "details": { "type": "array", "items": { "$ref": "#/$defs/detail" }, "description": "Row-level items, at most report.other_details_max; shapes are summarised per shape_id." },
           "truncated": { "$ref": "#/$defs/count", "description": "Items left out of details." }
         }

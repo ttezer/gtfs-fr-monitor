@@ -59,6 +59,7 @@
     "geometry_sample_m": 20,
     "geometry_max_samples": 5000,
     "geometry_tolerance_m": 10,
+    "geometry_max_points": 600,
     "irregular_max": 50,
     "irregular_spans_max": 20,
     "other_details_max": 200,

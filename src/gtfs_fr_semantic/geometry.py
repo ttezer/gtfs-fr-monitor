@@ -73,6 +73,16 @@ def simplify(points: list[Point], tolerance_m: float) -> list[Point]:
     return [p for p, k in zip(points, keep) if k]
 
 
+def simplify_to(points: list[Point], tolerance_m: float, max_points: int | None) -> list[Point]:
+    """simplify(), with the tolerance doubled until at most max_points remain: a coach line of
+    hundreds of kilometres keeps its shape at map scale without thousands of points."""
+    out = simplify(points, tolerance_m)
+    while max_points and len(out) > max_points:
+        tolerance_m *= 2
+        out = simplify(points, tolerance_m)
+    return out
+
+
 def encode(points: list[Point]) -> list[list[int]]:
     """[[lat * 1e5, lon * 1e5], ...]: about 1 m, compact in JSON."""
     return [[round(p[0] * 1e5), round(p[1] * 1e5)] for p in points]

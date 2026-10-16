@@ -266,6 +266,10 @@ def run_reports(data_dir: Path, key: str, limit: int | None = None, only: set[Fe
                 out.parent.mkdir(parents=True, exist_ok=True)
                 Path(spec["out"]).replace(out)
                 run.changed_files.append(str(out.relative_to(root)))
+                stale = change_path(root, *fk, engine_version, p.old_uid, p.new_uid, ".error.json")
+                if stale.exists():  # a retried engine error now has its report
+                    stale.unlink()
+                    run.changed_files.append(str(stale.relative_to(root)))
                 record["action"] = "reported"
                 run.counts["reported"] += 1
             finally:

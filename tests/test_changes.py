@@ -182,6 +182,14 @@ class ReportRunTest(unittest.TestCase):
         write_json(path, dict(marker, code="SOURCE_CHANGED"))  # lasting failures stay marked
         self.assertEqual(find_pending_reports(self.root, [FK], KEY, "0.1.0"), [])
 
+    def test_retried_engine_error_drops_its_marker(self):
+        path = change_path(self.root, *FK, "0.1.0", uid(1), uid(2), ".error.json")
+        write_json(path, {"code": "ENGINE_ERROR", "engine_build": "older"})
+        run = run_reports(self.root, KEY, downloader=FakeDownloader(self.blobs), engine_version="0.1.0")
+        self.assertEqual(run.counts["reported"], 1)
+        self.assertFalse(path.exists())
+        self.assertIn(str(path.relative_to(self.root)), run.changed_files)
+
     def test_time_budget_defers_the_rest(self):
         ticks = iter([0, 100, 100])  # start, then before the only pair: the budget is spent
         run = run_reports(self.root, KEY, downloader=FakeDownloader(self.blobs), engine_version="0.1.0",

@@ -143,6 +143,7 @@ def main(argv: list[str] | None = None) -> int:
     analyze.add_argument("--trigger", choices=("schedule", "workflow_dispatch", "local"), default="local")
     analyze.add_argument("--allow-non-production-platform", action="store_true")
     analyze.add_argument("--extra-warnings", help="JSON list of catalog events to include in the run record")
+    analyze.add_argument("--retry-fatal", action="store_true", help="re-analyze existing FATAL generation records")
     analyze.set_defaults(func=_cmd_analyze)
 
     reps = sub.add_parser("semantic-reports", help="build missing change reports with the French profile")

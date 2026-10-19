@@ -54,6 +54,13 @@ class BuildGenerationTest(unittest.TestCase):
         doc = build_generation(report("ok.json"), FEED, GEN, ANALYZER)
         self.assertEqual((doc["analyzer"]["validate_date"], doc["analyzer"]["validate_date_source"]), ("2026-04-01", "from_date"))
 
+    def test_partial_feed_info_validity_does_not_make_report_fatal(self):
+        raw = report("ok.json")
+        raw["metrics"].update(feed_start_date=20261012, feed_end_date=0)
+        doc = build_generation(raw, FEED, GEN, ANALYZER)
+        self.assertEqual(doc["validation_status"], "COMPLETE")
+        self.assertIsNone(doc["metrics"]["feed_validity"])
+
     def test_no_human_text_is_copied(self):
         text = dumps(build_generation(report("partial.json"), FEED, GEN, ANALYZER))
         for phrase in ("Başlık", "İnsan-okunur", "Düzeltme", "alt dizin"):
@@ -106,7 +113,7 @@ class BuildGenerationTest(unittest.TestCase):
             "inconsistent rule": lambda r: r["notices"][1].update(severity="HIGH"),
             "path in file name": lambda r: r["metrics"]["file_stats"][0].update(name="sub/stops.txt"),
             "negative count": lambda r: r["metrics"].update(trip_count=-1),
-            "half-open range": lambda r: r["metrics"].update(service_end_date=0),
+            "half-open service range": lambda r: r["metrics"].update(service_end_date=0),
             "bad date": lambda r: r["metrics"].update(service_start_date=20261399),
         }
         for label, mutate in mutations.items():

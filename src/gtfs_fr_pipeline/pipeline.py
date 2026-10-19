@@ -93,6 +93,7 @@ def find_pending(
     stored: dict[FeedKey, dict[str, dict[str, str]]],
     key: str,
     only: set[FeedKey] | None = None,
+    retry_fatal: bool = False,
 ) -> list[Pending]:
     """Generations present in the API, orderable, and without a record for `key`.
 
@@ -110,7 +111,8 @@ def find_pending(
         )
         done = stored.get(fk, {})
         for depth, ref in enumerate(reversed(ordered)):
-            if key not in done.get(ref.uid, {}):
+            status = done.get(ref.uid, {}).get(key)
+            if status is None or (retry_fatal and status == "FATAL"):
                 pending.append(Pending(fk[0], fk[1], depth, entries[ref.uid]))
     pending.sort(key=lambda p: (p.depth, p.org_id, p.feed_id))
     return pending
@@ -139,6 +141,7 @@ def run_analysis(
     fields_limit: int = FIELDS_LIMIT,
     canonical_key: str | None = None,
     areas: tuple | None = None,
+    retry_fatal: bool = False,
 ) -> RunReport:
     """canonical_key: the key the site uses, kept as the canonical analysis in feed.json while a
     newer release is filled in the background (data-model §8.1); defaults to this run's key.
@@ -154,7 +157,7 @@ def run_analysis(
     report.warnings.extend(extra_warnings or [])  # events from the catalog sync of the same run
     catalog_feeds, catalog_gens = load_catalog(root)
     stored = {fk: list_analyses(root, *fk) for fk in catalog_gens}
-    pending = find_pending(catalog_gens, stored, key, only)
+    pending = find_pending(catalog_gens, stored, key, only, retry_fatal=retry_fatal)
     # Publications whose file was replaced at the source come first (data-model §3.3).
     replaced = [Pending(fk[0], fk[1], -1, catalog_gens[fk][u]) for fk in sorted(catalog_gens)
                 if stored.get(fk) and all(is_path_id(x) for x in fk) and (only is None or fk in only)

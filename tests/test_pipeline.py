@@ -120,6 +120,12 @@ class PipelineTest(unittest.TestCase):
         diff = json.loads((self.feed_dir() / "diffs" / "v0.14.0__auto" / f"{uid(1)}__{uid(3)}.json").read_text())
         self.assertEqual(diff["skipped_uids"], [uid(2)])
 
+    def test_retry_fatal_reanalyzes_existing_fatal_records(self):
+        self.run_it(FakeDownloader({uid(1): b"OK1", uid(2): b"FATAL", uid(3): b"OK3"}))
+        retry = self.run_it(FakeDownloader({uid(2): b"OK2"}), retry_fatal=True)
+        self.assertEqual([item["uid"] for item in retry.items], [uid(2)])
+        self.assertEqual(retry.items[0]["validation_status"], "COMPLETE")
+
     def test_analyzer_crash_becomes_fatal_with_message_in_run_only(self):
         dl = FakeDownloader({uid(1): b"OK1", uid(2): b"CRASH", uid(3): b"OK3"})
         result = self.run_it(dl)

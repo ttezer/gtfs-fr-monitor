@@ -88,6 +88,18 @@ def _range(start: object, end: object) -> dict | None:
     return {"start": s, "end": e}
 
 
+def _feed_validity(start: object, end: object) -> dict | None:
+    """Return feed_info validity only when both optional endpoints are present.
+
+    GTFS permits feed_info.txt to publish one endpoint without the other.  That is
+    incomplete metadata, not an invalid Analyzer report; keep the generation and
+    represent the unavailable closed range as null.
+    """
+    if _date_or_none(start) is None or _date_or_none(end) is None:
+        return None
+    return _range(start, end)
+
+
 def _bool(section: dict, key: str, where: str) -> bool:
     # A missing verdict must not silently become "not publishable".
     value = section.get(key)
@@ -241,7 +253,7 @@ def build_generation(report: dict, feed: FeedMeta, gen: GenerationMeta, analyzer
             "active_service_days": _count(metrics, "active_service_days"),
             "avg_daily_trips": round1(avg),
             "service_range": _range(metrics.get("service_start_date"), metrics.get("service_end_date")),
-            "feed_validity": _range(metrics.get("feed_start_date"), metrics.get("feed_end_date")),
+            "feed_validity": _feed_validity(metrics.get("feed_start_date"), metrics.get("feed_end_date")),
         },
         file_row_counts=file_row_counts,
         summary={"by_severity": dict(by_severity), "by_class": dict(by_class)},

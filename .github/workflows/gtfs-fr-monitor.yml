@@ -37,6 +37,10 @@ on:
         description: "Optional ORG_ID/FEED_ID to restrict the run to one feed"
         required: false
         default: ""
+      retry_fatal:
+        description: "Re-analyze existing FATAL records (use with only for a targeted repair)"
+        required: false
+        default: "false"
 
 permissions:
   contents: read
@@ -57,6 +61,7 @@ jobs:
       REPORT_LIMIT: ${{ inputs.report_limit || '1000' }}
       REPORT_MINUTES: ${{ inputs.report_minutes || '120' }}
       ONLY: ${{ inputs.only }}
+      RETRY_FATAL: ${{ inputs.retry_fatal || 'false' }}
       TRIGGER: ${{ github.event_name }}
     steps:
       - name: Check configuration
@@ -66,6 +71,7 @@ jobs:
               ''|*[!0-9]*) echo "::error::download_budget, sync_minutes, limit, report_limit and report_minutes must be positive integers"; exit 1 ;;
             esac
           done
+          case "$RETRY_FATAL" in true|false) ;; *) echo "::error::retry_fatal must be true or false"; exit 1 ;; esac
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -104,6 +110,7 @@ jobs:
           echo "analysis start $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$RUNNER_TEMP/stages.txt"
           args=(--limit "$LIMIT")
           if [ -n "$ONLY" ]; then args+=(--only "$ONLY"); fi
+          if [ "$RETRY_FATAL" = "true" ]; then args+=(--retry-fatal); fi
           case "$TRIGGER" in schedule|workflow_dispatch) ;; *) TRIGGER=local ;; esac
           python -m gtfs_fr_monitor analyze --data-dir data --lock analyzer.lock.json \
             --analyzer "$RUNNER_TEMP/analyzer/gtfs-analyzer" --trigger "$TRIGGER" \

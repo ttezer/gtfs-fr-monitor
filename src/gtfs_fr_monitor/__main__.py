@@ -75,7 +75,8 @@ def _cmd_analyze(args: argparse.Namespace) -> int:
     extra = json.loads(Path(args.extra_warnings).read_text(encoding="utf-8")) if args.extra_warnings else None
     report = run_analysis(Path(args.data_dir), binary, PROFILE, trigger=args.trigger, limit=args.limit,
                           only=set(args.only) if args.only else None, timeout=args.timeout, downloader=download,
-                          extra_warnings=extra, canonical_key=analysis_key(lock.release_tag, PROFILE), areas=AREAS)
+                          extra_warnings=extra, canonical_key=analysis_key(lock.release_tag, PROFILE), areas=AREAS,
+                          retry_fatal=args.retry_fatal)
     print(json.dumps({
         "run_id": report.run_id, "pinned": binary.is_pinned, "counts": report.counts, "processed": len(report.items),
         "changed_files": len(report.changed_files), "run_file": report.run_file,

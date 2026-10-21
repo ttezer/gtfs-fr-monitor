@@ -66,6 +66,7 @@ class WebExportTest(unittest.TestCase):
             path.parent.mkdir(parents=True)
             path.write_bytes(gzip_bytes(report))
             export, files = build_export(root, KEY)
+            files = dict(files)  # reports are read from their files, which the temporary directory holds
         pair = f"{h['old']['uid']}__{h['new']['uid']}"
         entry = export["report_index"][pair]
         self.assertEqual(entry["feed"], [ORG, FEED])
@@ -91,7 +92,7 @@ class WebExportTest(unittest.TestCase):
                 path.parent.mkdir(parents=True)
                 path.write_bytes(gzip_bytes(r))
             _, files = build_export(root, KEY)
-        (doc,) = files.values()
+            (doc,) = files.values()
         self.assertEqual(doc["header"]["old"]["memo"], "new")  # newest not above this engine
 
     def test_superseded_reports_only_for_pairs_being_rebuilt(self):

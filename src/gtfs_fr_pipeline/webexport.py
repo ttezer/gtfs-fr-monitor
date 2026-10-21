@@ -13,6 +13,7 @@ import gzip
 import hashlib
 import json
 import subprocess
+from collections.abc import Mapping
 from pathlib import Path
 
 from gtfs_fr_semantic import ENGINE_VERSION
@@ -68,8 +69,34 @@ def _version(name: str) -> tuple[int, ...] | None:
     return tuple(int(p) for p in parts) if len(parts) == 3 and all(p.isdigit() for p in parts) else None
 
 
+def _read_report(path: Path, rules) -> tuple[dict, dict | None]:
+    doc = json.loads(gzip.decompress(path.read_bytes()).decode("utf-8"))
+    impact = assess(doc, rules)
+    if impact is not None:
+        doc["impact"] = impact  # site copy only; the stored report is unchanged
+    return doc, impact
+
+
+class ReportFiles(Mapping):
+    """{"<org_id>/<feed_id>/<old_uid>__<new_uid>": report}, each report read from its file when it is
+    accessed. The reports of all feeds do not fit in memory together (2026-10-21: 1,723 reports,
+    9.4 GB of JSON), so they are read one at a time."""
+
+    def __init__(self, paths: dict[str, Path], rules) -> None:
+        self._paths, self._rules = paths, rules
+
+    def __getitem__(self, name: str) -> dict:
+        return _read_report(self._paths[name], self._rules)[0]
+
+    def __iter__(self):
+        return iter(self._paths)
+
+    def __len__(self) -> int:
+        return len(self._paths)
+
+
 def report_files(root: Path, feeds: list[dict], engine_version: str,
-                 wanted: dict[tuple[str, str], set[str]] | None = None) -> tuple[dict[str, dict], dict[str, dict]]:
+                 wanted: dict[tuple[str, str], set[str]] | None = None) -> tuple[dict[str, dict], ReportFiles]:
     """Semantic reports of exported feeds: a small index for the page and one file per report,
     {"<org_id>/<feed_id>/<old_uid>__<new_uid>": report}, loaded on demand.
 
@@ -79,7 +106,7 @@ def report_files(root: Path, feeds: list[dict], engine_version: str,
     is shown only for such a pair: older reports of pairs the new version will not rebuild stay in
     the data repository but leave the site (data-model §11)."""
     index: dict[str, dict] = {}
-    files: dict[str, dict] = {}
+    paths: dict[str, Path] = {}
     limit = _version(engine_version)
     rules = load_rules()
     for f in feeds:
@@ -94,19 +121,16 @@ def report_files(root: Path, feeds: list[dict], engine_version: str,
                     continue  # superseded engine version and not to be rebuilt
                 newest.setdefault(path.name, path)
         for _, path in sorted(newest.items()):
-            doc = json.loads(gzip.decompress(path.read_bytes()).decode("utf-8"))
+            doc, impact = _read_report(path, rules)
             h = doc["header"]
             pair = f"{h['old']['uid']}__{h['new']['uid']}"
-            impact = assess(doc, rules)
-            if impact is not None:
-                doc["impact"] = impact  # site copy only; the stored report is unchanged
-            files[f"{f['org_id']}/{f['feed_id']}/{pair}"] = doc
+            paths[f"{f['org_id']}/{f['feed_id']}/{pair}"] = path
             index[pair] = {"feed": [f["org_id"], f["feed_id"]],
                            "dates": [h["old"]["from_date"], h["new"]["from_date"]],
                            "summary": doc["summary"], "coverage": h["coverage"],
                            "classification": classify_report(doc, rules),
                            **({"impact": impact["class"]} if impact else {})}
-    return index, files
+    return index, ReportFiles(paths, rules)
 
 
 PAIR_CODES = {MEANINGFUL: "M", TECHNICAL: "T", EQUIVALENT: "E"}

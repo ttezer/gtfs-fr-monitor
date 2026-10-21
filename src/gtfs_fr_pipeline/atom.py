@@ -131,7 +131,8 @@ def build_atom(feeds: list[dict], files: dict[str, dict], site_url: str = SITE_U
     for doc in files.values():
         if (doc.get("impact") or {}).get("class") == "major":
             h = doc["header"]["feed"]
-            major.append((names.get((h["org_id"], h["feed_id"]), {}), doc))
+            # Entries use only the header and the impact; the rest of the report is not kept.
+            major.append((names.get((h["org_id"], h["feed_id"]), {}), {"header": doc["header"], "impact": doc["impact"]}))
     order = lambda item: (_updated(item[1]["header"]["new"]), item[1]["header"]["new"]["uid"])
     major.sort(key=order, reverse=True)
     out: dict[str, bytes] = {}

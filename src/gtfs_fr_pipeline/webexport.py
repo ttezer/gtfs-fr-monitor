@@ -23,6 +23,7 @@ from .catalog import load_catalog
 from .classify import EQUIVALENT, MEANINGFUL, TECHNICAL, classify_report, load_rules
 from .ids import feed_dir
 from .impact import assess
+from .lineage import build_route_lineage
 from .metrics import build_metrics
 from .ordering import GenerationRef, order_generations
 from .store import content_digest, generation_path, list_analyses, load_content, load_feed_index, summary_digest
@@ -82,8 +83,9 @@ class ReportFiles(Mapping):
     accessed. The reports of all feeds do not fit in memory together (2026-10-21: 1,723 reports,
     9.4 GB of JSON), so they are read one at a time."""
 
-    def __init__(self, paths: dict[str, Path], rules) -> None:
+    def __init__(self, paths: dict[str, Path], rules, route_lineage: dict[str, dict] | None = None) -> None:
         self._paths, self._rules = paths, rules
+        self.route_lineage = route_lineage or {}
 
     def __getitem__(self, name: str) -> dict:
         return _read_report(self._paths[name], self._rules)[0]
@@ -107,6 +109,7 @@ def report_files(root: Path, feeds: list[dict], engine_version: str,
     the data repository but leave the site (data-model §11)."""
     index: dict[str, dict] = {}
     paths: dict[str, Path] = {}
+    lineage_reports: dict[str, list[dict]] = {}
     limit = _version(engine_version)
     rules = load_rules()
     for f in feeds:
@@ -124,13 +127,22 @@ def report_files(root: Path, feeds: list[dict], engine_version: str,
             doc, impact = _read_report(path, rules)
             h = doc["header"]
             pair = f"{h['old']['uid']}__{h['new']['uid']}"
+            feed_key = f"{f['org_id']}/{f['feed_id']}"
+            lineage_reports.setdefault(feed_key, []).append({
+                "header": {"feed": h["feed"], "old": h["old"], "new": h["new"]},
+                "lines": [{"old": line.get("old"), "new": line.get("new")} for line in doc.get("lines", ())],
+                "mappings": {"routes": (doc.get("mappings") or {}).get("routes", [])},
+            })
             paths[f"{f['org_id']}/{f['feed_id']}/{pair}"] = path
             index[pair] = {"feed": [f["org_id"], f["feed_id"]],
                            "dates": [h["old"]["from_date"], h["new"]["from_date"]],
                            "summary": doc["summary"], "coverage": h["coverage"],
                            "classification": classify_report(doc, rules),
                            **({"impact": impact["class"]} if impact else {})}
-    return index, ReportFiles(paths, rules)
+    lineage = {feed: build_route_lineage(sorted(docs, key=lambda d: (
+        d["header"]["old"].get("from_date") or "", d["header"]["old"]["uid"])))
+               for feed, docs in sorted(lineage_reports.items())}
+    return index, ReportFiles(paths, rules, lineage)
 
 
 PAIR_CODES = {MEANINGFUL: "M", TECHNICAL: "T", EQUIVALENT: "E"}
@@ -453,6 +465,7 @@ def build_export(data_dir: Path, key: str, analyzer: Path | None = None,
         "methods": dict(sorted(methods.items())),
         "engine_version": ENGINE_VERSION,
         "report_index": report_index,
+        "route_lineage": files.route_lineage,
         "status": build_status(root, key, next_key=next_key),
         "metrics": metrics,
         "fields": fields,

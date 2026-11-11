@@ -70,6 +70,23 @@ def _version(name: str) -> tuple[int, ...] | None:
     return tuple(int(p) for p in parts) if len(parts) == 3 and all(p.isdigit() for p in parts) else None
 
 
+def _analysis_key_for(available: Mapping[str, str], requested: str) -> str | None:
+    """Select the requested analysis, or the newest same-profile older result during a rollout."""
+    if requested in available:
+        return requested
+    release, separator, profile = requested.partition("__")
+    limit = _version(release.removeprefix("v"))
+    if not separator or limit is None:
+        return None
+    candidates = []
+    for candidate in available:
+        candidate_release, candidate_separator, candidate_profile = candidate.partition("__")
+        version = _version(candidate_release.removeprefix("v"))
+        if candidate_separator and candidate_profile == profile and version is not None and version <= limit:
+            candidates.append((version, candidate))
+    return max(candidates)[1] if candidates else None
+
+
 def _read_report(path: Path, rules) -> tuple[dict, dict | None]:
     doc = json.loads(gzip.decompress(path.read_bytes()).decode("utf-8"))
     impact = assess(doc, rules)
@@ -400,10 +417,12 @@ def build_export(data_dir: Path, key: str, analyzer: Path | None = None,
         last_digest = None
         last = None  # (content signature, summary digest, rules, uid) of the previous publication
         for ref in ordered:
-            if key not in analyses.get(ref.uid, {}):
+            analysis_key = _analysis_key_for(analyses.get(ref.uid, {}), key)
+            if analysis_key is None:
                 continue
-            doc = json.loads(generation_path(root, *fk, ref.uid, key).read_text(encoding="utf-8"))
+            doc = json.loads(generation_path(root, *fk, ref.uid, analysis_key).read_text(encoding="utf-8"))
             gens.append(_summary(entries[ref.uid], doc))
+            gens[-1]["analysis_key"] = analysis_key
             fp, options = method_fingerprint(doc)
             gens[-1]["method"] = fp
             methods[fp] = options
@@ -450,7 +469,14 @@ def build_export(data_dir: Path, key: str, analyzer: Path | None = None,
         fk = (f["org_id"], f["feed_id"])
         index_doc = load_feed_index(root, *fk)
         if index_doc:
-            wanted[fk] = {f"{o}__{n}" for _, (o, n) in wanted_pairs(index_doc, key, catalog_gens.get(fk, {}))}
+            analyses = list_analyses(root, *fk)
+            keys = {analysis_key for stored in analyses.values() for analysis_key in stored
+                    if _analysis_key_for({analysis_key: ""}, key) == analysis_key}
+            wanted[fk] = {
+                f"{o}__{n}"
+                for analysis_key in keys
+                for _, (o, n) in wanted_pairs(index_doc, analysis_key, catalog_gens.get(fk, {}))
+            }
     report_index, files = report_files(root, feeds, ENGINE_VERSION, wanted)
     classify_pairs(root, feeds, report_index, ENGINE_VERSION)
     comparator_states(feeds, zip_sha)
